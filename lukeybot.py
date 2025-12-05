@@ -173,7 +173,14 @@ async def on_command_error(ctx, error):
         await ctx.send(f"❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
     else:
         print(f"Error en comando: {error}")
-        await ctx.send(f"❌ Error: {str(error)}")
+        import traceback
+        traceback.print_exc()
+        if DEBUG:
+            # En modo DEBUG enviar detalle técnico al canal
+            await ctx.send(f"❌ Error: ```{str(error)}```")
+        else:
+            # Mensaje genérico para usuarios
+            await ctx.send("❌ Ocurrió un error interno. El administrador puede revisar los logs.")
 
 # -----------------------------------
 # !luke — modo normal
@@ -231,7 +238,10 @@ async def luke_command(ctx):
         print(f"Error en !luke: {e}")
         import traceback
         traceback.print_exc()
-        await ctx.send(f"❌ Error: {str(e)}")
+        if DEBUG:
+            await ctx.send(f"❌ Error: ```{str(e)}```")
+        else:
+            await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud.")
 
 # -----------------------------------
 # !spicyluke — modo SPICY 🔥
@@ -289,7 +299,10 @@ async def spicyluke_command(ctx):
         print(f"Error en !spicyluke: {e}")
         import traceback
         traceback.print_exc()
-        await ctx.send(f"❌ Error: {str(e)}")
+        if DEBUG:
+            await ctx.send(f"❌ Error: ```{str(e)}```")
+        else:
+            await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud spicy.")
 
 # -----------------------------------
 # !lukeyhelp — instrucciones
