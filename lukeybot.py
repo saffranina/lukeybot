@@ -50,6 +50,45 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 bot_name = "LukeyBot"
 
+# Modo silencioso para evitar enviar mensajes de error al canal
+# Por seguridad y para respetar la petición del usuario, por defecto está activado.
+QUIET_MODE = os.getenv("QUIET_MODE", "True").lower() == "true"
+
+
+def _is_error_text(text: str) -> bool:
+    if not text:
+        return False
+    lower = text.lower()
+    keywords = [
+        "error",
+        "no se pudo",
+        "no images",
+        "no spicy",
+        "archivo de cuenta",
+        "service_account",
+        "service account",
+        "no such file",
+        "errno",
+        "ocurrió un error",
+        "file not found",
+    ]
+    return any(k in lower for k in keywords)
+
+
+async def safe_send(ctx, *args, **kwargs):
+    # Detectar contenido de texto y suprimir si parece un mensaje de error
+    content = kwargs.get("content")
+    if not content and args:
+        first = args[0]
+        if isinstance(first, str):
+            content = first
+
+    if QUIET_MODE and content and _is_error_text(content):
+        print(f"[safe_send] Suppressed error message to channel: {content}")
+        return
+
+    await ctx.send(*args, **kwargs)
+
 # ==========================
 # Frases random (modo normal)
 # ==========================
@@ -197,7 +236,7 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send("❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
+        await safe_send(ctx, "❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
     else:
         # No divulgar texto de excepciones en Discord. Registrar traceback en logs.
         print(f"Error en comando: {error}")
@@ -207,7 +246,7 @@ async def on_command_error(ctx, error):
             _log_traceback_to_file(error)
         except Exception as _e:
             print(f"Failed to write traceback to error_traces.log: {_e}")
-        await ctx.send("❌ Ocurrió un error interno. El administrador puede revisar los logs.")
+        await safe_send(ctx, "❌ Ocurrió un error interno. El administrador puede revisar los logs.")
 
 # -----------------------------------
 # !luke — modo normal
@@ -218,9 +257,9 @@ async def luke_command(ctx):
         print(f"Comando !luke ejecutado por {ctx.author}")
         files = get_all_media_files_from_folder()
         if DEBUG:
-            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+            await safe_send(ctx, f"[DEBUG] Archivos en Drive: {len(files)}")
         if not files:
-            await ctx.send("No images found in Drive folder.")
+            await safe_send(ctx, "No images found in Drive folder.")
             return
 
         file = random.choice(files)
@@ -238,7 +277,7 @@ async def luke_command(ctx):
                 # Verificar que el archivo temporal fue creado correctamente
                 if not os.path.exists(tmp_path):
                     print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    await ctx.send("❌ Error interno: archivo temporal no encontrado al preparar el GIF.")
+                    await safe_send(ctx, "❌ Error interno: archivo temporal no encontrado al preparar el GIF.")
                 else:
                     try:
                         await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
@@ -248,7 +287,7 @@ async def luke_command(ctx):
                         except Exception as e:
                             print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
             else:
-                await ctx.send(f"No se pudo descargar el GIF. Código HTTP: {r.status_code}")
+                await safe_send(ctx, f"No se pudo descargar el GIF. Código HTTP: {r.status_code}")
         else:
             random_color = discord.Color.from_rgb(
                 random.randint(0,255),
@@ -276,9 +315,9 @@ async def spicyluke_command(ctx):
         print(f"Comando !spicyluke ejecutado por {ctx.author}")
         files = get_all_media_files_from_folder()
         if DEBUG:
-            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+            await safe_send(ctx, f"[DEBUG] Archivos en Drive: {len(files)}")
         if not files:
-            await ctx.send("No spicy material found in Drive 😳")
+            await safe_send(ctx, "No spicy material found in Drive 😳")
             return
 
         file = random.choice(files)
@@ -295,7 +334,7 @@ async def spicyluke_command(ctx):
 
                 if not os.path.exists(tmp_path):
                     print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    await ctx.send("❌ Error interno: archivo temporal no encontrado al preparar el GIF spicy.")
+                    await safe_send(ctx, "❌ Error interno: archivo temporal no encontrado al preparar el GIF spicy.")
                 else:
                     try:
                         await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp_path, filename=file['name']))
@@ -354,28 +393,28 @@ async def lukeytest(ctx):
     try:
         # Test 1: Service account file
         if not os.path.exists(SERVICE_ACCOUNT_FILE):
-            await ctx.send("❌ Archivo de cuenta de servicio no encontrado. Contacta al administrador.")
+            await safe_send(ctx, "❌ Archivo de cuenta de servicio no encontrado. Contacta al administrador.")
             return
-        await ctx.send("✅ Archivo de cuenta de servicio: OK")
+        await safe_send(ctx, "✅ Archivo de cuenta de servicio: OK")
         
         # Test 2: Connect to Drive
         service = get_drive_service()
-        await ctx.send("✅ Successfully connected to Google Drive API")
+        await safe_send(ctx, "✅ Successfully connected to Google Drive API")
         
         # Test 3: Access folder
         files = get_all_media_files_from_folder()
-        await ctx.send(f"✅ Found {len(files)} files in Drive folder")
+        await safe_send(ctx, f"✅ Found {len(files)} files in Drive folder")
         
         if files:
-            await ctx.send(f"📁 First file: `{files[0]['name']}` (type: {files[0]['mimeType']})")
+            await safe_send(ctx, f"📁 First file: `{files[0]['name']}` (type: {files[0]['mimeType']})")
         else:
-            await ctx.send("⚠️ Folder is empty or bot doesn't have access")
+            await safe_send(ctx, "⚠️ Folder is empty or bot doesn't have access")
             
     except Exception as e:
         print(f"Error detallado en !lukeytest: {e}")
         traceback.print_exc()
         _log_traceback_to_file(e)
-        await ctx.send("❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
+        await safe_send(ctx, "❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
 
 # ==========================
 # Run bot
