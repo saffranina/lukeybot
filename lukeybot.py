@@ -270,29 +270,16 @@ async def luke_command(ctx):
         quote = random.choice(RANDOM_QUOTES)
 
         if file['mimeType'] == 'image/gif':
-            r = requests.get(url)
-            if r.status_code == 200:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                    tmp.write(r.content)
-                    tmp.flush()
-                    tmp_path = tmp.name
-
-                # Verificar que el archivo temporal fue creado correctamente
-                if not os.path.exists(tmp_path):
-                    print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    # suppressed: temporary file missing — do not inform channel
-                    print("Temporary GIF file missing (suppressed message to channel)")
-                else:
-                    try:
-                        await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
-                    finally:
-                        try:
-                            os.remove(tmp_path)
-                        except Exception as e:
-                            print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
-            else:
-                # suppressed: download error message removed
-                print(f"Failed to download GIF, HTTP {r.status_code} (suppressed message to channel)")
+            # Do not download GIFs (can be > upload limit). Use Drive view URL in an embed.
+            gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+            random_color = discord.Color.from_rgb(
+                random.randint(0,255),
+                random.randint(0,255),
+                random.randint(0,255),
+            )
+            embed = discord.Embed(title=quote, color=random_color)
+            embed.set_image(url=gif_url)
+            await ctx.send(embed=embed)
         else:
             random_color = discord.Color.from_rgb(
                 random.randint(0,255),
@@ -331,28 +318,20 @@ async def spicyluke_command(ctx):
         quote = random.choice(SPICY_QUOTES)
 
         if file['mimeType'] == 'image/gif':
-            r = requests.get(url)
-            if r.status_code == 200:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                    tmp.write(r.content)
-                    tmp.flush()
-                    tmp_path = tmp.name
-
-                if not os.path.exists(tmp_path):
-                    print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    # suppressed: temp file missing (spicy)
-                    print("Temporary spicy GIF file missing (suppressed message to channel)")
-                else:
-                    try:
-                        await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp_path, filename=file['name']))
-                    finally:
-                        try:
-                            os.remove(tmp_path)
-                        except Exception as e:
-                            print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
-            else:
-                # suppressed: spicy download error
-                print(f"Failed to download spicy GIF, HTTP {r.status_code} (suppressed message to channel)")
+            # Send spicy GIF via Drive view URL instead of uploading
+            gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+            spicy_color = discord.Color.from_rgb(
+                random.randint(180,255),
+                random.randint(0,80),
+                random.randint(50,200),
+            )
+            embed = discord.Embed(
+                title=quote,
+                description="🔥 Spicy Mode Activated 🔥",
+                color=spicy_color
+            )
+            embed.set_image(url=gif_url)
+            await ctx.send(embed=embed)
         else:
             spicy_color = discord.Color.from_rgb(
                 random.randint(180,255),
