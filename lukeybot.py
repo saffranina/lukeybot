@@ -28,6 +28,14 @@ if not DRIVE_FOLDER_ID:
 if not SERVICE_ACCOUNT_FILE:
     raise RuntimeError("Falta GOOGLE_SERVICE_ACCOUNT_FILE en el archivo .env")
 
+# Resolver ruta del archivo de cuenta de servicio relativa al directorio del
+# script si se pasó un nombre relativo (por ejemplo `service_account.json`).
+if SERVICE_ACCOUNT_FILE and not os.path.isabs(SERVICE_ACCOUNT_FILE):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    SERVICE_ACCOUNT_FILE = os.path.join(base_dir, SERVICE_ACCOUNT_FILE)
+
+print(f"Using service account file: {SERVICE_ACCOUNT_FILE} (exists={os.path.exists(SERVICE_ACCOUNT_FILE)})")
+
 # ==========================
 # Configuración Discord
 # ==========================
