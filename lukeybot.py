@@ -247,8 +247,8 @@ async def luke_command(ctx):
             await ctx.send(embed=embed)
     except Exception as e:
         print(f"Error en !luke: {e}")
-        import traceback
         traceback.print_exc()
+        _log_traceback_to_file(e)
         await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud.")
 
 # -----------------------------------
@@ -305,8 +305,8 @@ async def spicyluke_command(ctx):
             await ctx.send(embed=embed)
     except Exception as e:
         print(f"Error en !spicyluke: {e}")
-        import traceback
         traceback.print_exc()
+        _log_traceback_to_file(e)
         await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud spicy.")
 
 # -----------------------------------
@@ -357,8 +357,8 @@ async def lukeytest(ctx):
             
     except Exception as e:
         print(f"Error detallado en !lukeytest: {e}")
-        import traceback
         traceback.print_exc()
+        _log_traceback_to_file(e)
         if DEBUG:
             await ctx.send(f"❌ Error: ```{str(e)}```")
         else:
