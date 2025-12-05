@@ -95,7 +95,11 @@ def get_drive_service():
     return build("drive", "v3", credentials=creds)
 
 def get_all_media_files_from_folder():
-    service = get_drive_service()
+    try:
+        service = get_drive_service()
+    except Exception as e:
+        print(f"Error al conectar con Google Drive: {e}")
+        raise
 
     query = (
         f"'{DRIVE_FOLDER_ID}' in parents and ("
@@ -139,84 +143,107 @@ def get_random_image_url():
 @bot.event
 async def on_ready():
     print(f"{bot_name} ONLINE como {bot.user} (id: {bot.user.id})")
+    print(f"Comandos disponibles: {[cmd.name for cmd in bot.commands]}")
     await bot.change_presence(activity=discord.Game(name="summoning Luke"))
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send(f"❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
+    else:
+        print(f"Error en comando: {error}")
+        await ctx.send(f"❌ Error: {str(error)}")
 
 # -----------------------------------
 # !luke — modo normal
 # -----------------------------------
 @bot.command(name="luke", help="Random Luke image + normal quote")
 async def luke_command(ctx):
-    files = get_all_media_files_from_folder()
-    if DEBUG:
-        await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
-    if not files:
-        await ctx.send("No images found in Drive folder.")
-        return
+    try:
+        print(f"Comando !luke ejecutado por {ctx.author}")
+        files = get_all_media_files_from_folder()
+        if DEBUG:
+            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+        if not files:
+            await ctx.send("No images found in Drive folder.")
+            return
 
-    file = random.choice(files)
-    url = f"https://drive.google.com/uc?export=download&id={file['id']}"
-    quote = random.choice(RANDOM_QUOTES)
+        file = random.choice(files)
+        url = f"https://drive.google.com/uc?export=download&id={file['id']}"
+        quote = random.choice(RANDOM_QUOTES)
 
-    if file['mimeType'] == 'image/gif':
-        r = requests.get(url)
-        if r.status_code == 200:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                tmp.write(r.content)
-                tmp.flush()
-                await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
+        if file['mimeType'] == 'image/gif':
+            r = requests.get(url)
+            if r.status_code == 200:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                    tmp.write(r.content)
+                    tmp.flush()
+                    await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
+            else:
+                await ctx.send("No se pudo descargar el GIF.")
         else:
-            await ctx.send("No se pudo descargar el GIF.")
-    else:
-        random_color = discord.Color.from_rgb(
-            random.randint(0,255),
-            random.randint(0,255),
-            random.randint(0,255),
-        )
-        embed = discord.Embed(
-            title=quote,
-            color=random_color
-        )
-        embed.set_image(url=url)
-        await ctx.send(embed=embed)
+            random_color = discord.Color.from_rgb(
+                random.randint(0,255),
+                random.randint(0,255),
+                random.randint(0,255),
+            )
+            embed = discord.Embed(
+                title=quote,
+                color=random_color
+            )
+            embed.set_image(url=url)
+            await ctx.send(embed=embed)
+    except Exception as e:
+        print(f"Error en !luke: {e}")
+        import traceback
+        traceback.print_exc()
+        await ctx.send(f"❌ Error: {str(e)}")
 
 # -----------------------------------
 # !spicyluke — modo SPICY 🔥
 # -----------------------------------
 @bot.command(name="spicyluke", help="SPICY Luke image + spicy quote 🔥")
 async def spicyluke_command(ctx):
-    files = get_all_media_files_from_folder()
-    if DEBUG:
-        await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
-    if not files:
-        await ctx.send("No spicy material found in Drive 😳")
-        return
+    try:
+        print(f"Comando !spicyluke ejecutado por {ctx.author}")
+        files = get_all_media_files_from_folder()
+        if DEBUG:
+            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+        if not files:
+            await ctx.send("No spicy material found in Drive 😳")
+            return
 
-    file = random.choice(files)
-    url = f"https://drive.google.com/uc?export=download&id={file['id']}"
-    quote = random.choice(SPICY_QUOTES)
+        file = random.choice(files)
+        url = f"https://drive.google.com/uc?export=download&id={file['id']}"
+        quote = random.choice(SPICY_QUOTES)
 
-    if file['mimeType'] == 'image/gif':
-        r = requests.get(url)
-        if r.status_code == 200:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                tmp.write(r.content)
-                tmp.flush()
-                await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
+        if file['mimeType'] == 'image/gif':
+            r = requests.get(url)
+            if r.status_code == 200:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                    tmp.write(r.content)
+                    tmp.flush()
+                    await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
+            else:
+                await ctx.send("No se pudo descargar el GIF spicy.")
         else:
-            await ctx.send("No se pudo descargar el GIF spicy.")
-    else:
-        spicy_color = discord.Color.from_rgb(
-            random.randint(180,255),
-            random.randint(0,80),
-            random.randint(50,200),
-        )
-        embed = discord.Embed(
-            title=quote,
-            description="🔥 Spicy Mode Activated 🔥",
-            color=spicy_color
-        )
-        embed.set_image(url=url)
-        await ctx.send(embed=embed)
+            spicy_color = discord.Color.from_rgb(
+                random.randint(180,255),
+                random.randint(0,80),
+                random.randint(50,200),
+            )
+            embed = discord.Embed(
+                title=quote,
+                description="🔥 Spicy Mode Activated 🔥",
+                color=spicy_color
+            )
+            embed.set_image(url=url)
+            await ctx.send(embed=embed)
+    except Exception as e:
+        print(f"Error en !spicyluke: {e}")
+        import traceback
+        traceback.print_exc()
+        await ctx.send(f"❌ Error: {str(e)}")
 
 # -----------------------------------
 # !lukeyhelp — instrucciones
@@ -228,6 +255,7 @@ async def lukeyhelp(ctx):
         description=(
             "**!luke** — random Luke image + random quote\n"
             "**!spicyluke** — spicy Luke image + spicy quote 🔥\n"
+            "**!lukeytest** — test Google Drive connection\n"
             "**Source:** Google Drive folder (JPG, PNG, GIF)\n\n"
             "Add new images to the Drive folder and LukeyBot will use them automatically.\n"
             "Hydration recommended."
@@ -235,6 +263,39 @@ async def lukeyhelp(ctx):
         color=discord.Color.blurple()
     )
     await ctx.send(embed=embed)
+
+# -----------------------------------
+# !lukeytest — diagnostico
+# -----------------------------------
+@bot.command(name="lukeytest", help="Test Google Drive connection")
+async def lukeytest(ctx):
+    await ctx.send("🔍 Testing Google Drive connection...")
+    
+    try:
+        # Test 1: Service account file
+        if not os.path.exists(SERVICE_ACCOUNT_FILE):
+            await ctx.send(f"❌ Service account file not found: `{SERVICE_ACCOUNT_FILE}`")
+            return
+        await ctx.send(f"✅ Service account file found: `{SERVICE_ACCOUNT_FILE}`")
+        
+        # Test 2: Connect to Drive
+        service = get_drive_service()
+        await ctx.send("✅ Successfully connected to Google Drive API")
+        
+        # Test 3: Access folder
+        files = get_all_media_files_from_folder()
+        await ctx.send(f"✅ Found {len(files)} files in Drive folder")
+        
+        if files:
+            await ctx.send(f"📁 First file: `{files[0]['name']}` (type: {files[0]['mimeType']})")
+        else:
+            await ctx.send("⚠️ Folder is empty or bot doesn't have access")
+            
+    except Exception as e:
+        await ctx.send(f"❌ Error: ```{str(e)}```")
+        print(f"Error detallado en !lukeytest: {e}")
+        import traceback
+        traceback.print_exc()
 
 # ==========================
 # Run bot
