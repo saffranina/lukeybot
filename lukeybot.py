@@ -351,10 +351,13 @@ async def lukeytest(ctx):
             await ctx.send("⚠️ Folder is empty or bot doesn't have access")
             
     except Exception as e:
-        await ctx.send(f"❌ Error: ```{str(e)}```")
         print(f"Error detallado en !lukeytest: {e}")
         import traceback
         traceback.print_exc()
+        if DEBUG:
+            await ctx.send(f"❌ Error: ```{str(e)}```")
+        else:
+            await ctx.send("❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
 
 # ==========================
 # Run bot
