@@ -174,7 +174,19 @@ async def on_ready():
 async def on_message(message):
     # Logear mensajes entrantes para depuración y asegurarnos de procesar comandos
     try:
-        if message.author.bot:
+        # Allow inspecting our own messages so we can remove sensitive outputs
+        if message.author == bot.user:
+            content_lower = (message.content or "").lower()
+            # Patterns that should never be visible in channels
+            sensitive_patterns = ["no such file", "errno", "service_account", "service account", "service_account.json"]
+            if any(pat in content_lower for pat in sensitive_patterns):
+                try:
+                    await message.delete()
+                    print(f"Deleted sensitive bot message: {message.content}")
+                except Exception as e:
+                    print(f"Failed to delete sensitive bot message: {e}")
+            # Do not return here; allow processing if needed
+        elif message.author.bot:
             return
         print(f"Mensaje recibido de {message.author}: {message.content}")
     except Exception:
@@ -363,10 +375,7 @@ async def lukeytest(ctx):
         print(f"Error detallado en !lukeytest: {e}")
         traceback.print_exc()
         _log_traceback_to_file(e)
-        if DEBUG:
-            await ctx.send(f"❌ Error: ```{str(e)}```")
-        else:
-            await ctx.send("❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
+        await ctx.send("❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
 
 # ==========================
 # Run bot
