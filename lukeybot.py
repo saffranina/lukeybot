@@ -236,7 +236,8 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await safe_send(ctx, "❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
+        # suppressed: no user-facing error messages per request
+        print("Command not found (suppressed message to channel)")
     else:
         # No divulgar texto de excepciones en Discord. Registrar traceback en logs.
         print(f"Error en comando: {error}")
@@ -246,7 +247,8 @@ async def on_command_error(ctx, error):
             _log_traceback_to_file(error)
         except Exception as _e:
             print(f"Failed to write traceback to error_traces.log: {_e}")
-        await safe_send(ctx, "❌ Ocurrió un error interno. El administrador puede revisar los logs.")
+        # suppressed: do not send error messages to channels
+        print("Internal command error (suppressed message to channel)")
 
 # -----------------------------------
 # !luke — modo normal
@@ -259,7 +261,8 @@ async def luke_command(ctx):
         if DEBUG:
             await safe_send(ctx, f"[DEBUG] Archivos en Drive: {len(files)}")
         if not files:
-            await safe_send(ctx, "No images found in Drive folder.")
+            # suppressed: No images found message removed
+            print("No images found in Drive folder (suppressed message to channel)")
             return
 
         file = random.choice(files)
@@ -277,7 +280,8 @@ async def luke_command(ctx):
                 # Verificar que el archivo temporal fue creado correctamente
                 if not os.path.exists(tmp_path):
                     print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    await safe_send(ctx, "❌ Error interno: archivo temporal no encontrado al preparar el GIF.")
+                    # suppressed: temporary file missing — do not inform channel
+                    print("Temporary GIF file missing (suppressed message to channel)")
                 else:
                     try:
                         await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
@@ -287,7 +291,8 @@ async def luke_command(ctx):
                         except Exception as e:
                             print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
             else:
-                await safe_send(ctx, f"No se pudo descargar el GIF. Código HTTP: {r.status_code}")
+                # suppressed: download error message removed
+                print(f"Failed to download GIF, HTTP {r.status_code} (suppressed message to channel)")
         else:
             random_color = discord.Color.from_rgb(
                 random.randint(0,255),
@@ -304,7 +309,8 @@ async def luke_command(ctx):
         print(f"Error en !luke: {e}")
         traceback.print_exc()
         _log_traceback_to_file(e)
-        await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud.")
+        # suppressed: do not send error messages to channel
+        print("Internal error in !luke (suppressed message to channel)")
 
 # -----------------------------------
 # !spicyluke — modo SPICY 🔥
@@ -334,7 +340,8 @@ async def spicyluke_command(ctx):
 
                 if not os.path.exists(tmp_path):
                     print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
-                    await safe_send(ctx, "❌ Error interno: archivo temporal no encontrado al preparar el GIF spicy.")
+                    # suppressed: temp file missing (spicy)
+                    print("Temporary spicy GIF file missing (suppressed message to channel)")
                 else:
                     try:
                         await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp_path, filename=file['name']))
@@ -344,7 +351,8 @@ async def spicyluke_command(ctx):
                         except Exception as e:
                             print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
             else:
-                await ctx.send(f"No se pudo descargar el GIF spicy. Código HTTP: {r.status_code}")
+                # suppressed: spicy download error
+                print(f"Failed to download spicy GIF, HTTP {r.status_code} (suppressed message to channel)")
         else:
             spicy_color = discord.Color.from_rgb(
                 random.randint(180,255),
@@ -362,7 +370,8 @@ async def spicyluke_command(ctx):
         print(f"Error en !spicyluke: {e}")
         traceback.print_exc()
         _log_traceback_to_file(e)
-        await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud spicy.")
+        # suppressed: do not send error messages to channel
+        print("Internal error in !spicyluke (suppressed message to channel)")
 
 # -----------------------------------
 # !lukeyhelp — instrucciones
@@ -393,7 +402,8 @@ async def lukeytest(ctx):
     try:
         # Test 1: Service account file
         if not os.path.exists(SERVICE_ACCOUNT_FILE):
-            await safe_send(ctx, "❌ Archivo de cuenta de servicio no encontrado. Contacta al administrador.")
+            # suppressed: service account missing message
+            print(f"Service account file not found at {SERVICE_ACCOUNT_FILE} (suppressed message to channel)")
             return
         await safe_send(ctx, "✅ Archivo de cuenta de servicio: OK")
         
@@ -414,7 +424,8 @@ async def lukeytest(ctx):
         print(f"Error detallado en !lukeytest: {e}")
         traceback.print_exc()
         _log_traceback_to_file(e)
-        await safe_send(ctx, "❌ Ocurrió un error al probar la conexión a Drive. Revisa los logs del servidor.")
+        # suppressed: do not send error message to channel
+        print("Internal error in !lukeytest (suppressed message to channel)")
 
 # ==========================
 # Run bot
