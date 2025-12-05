@@ -170,17 +170,13 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send(f"❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
+        await ctx.send("❌ Comando no encontrado. Usa `!lukeyhelp` para ver los comandos disponibles.")
     else:
+        # No divulgar texto de excepciones en Discord. Registrar traceback en logs.
         print(f"Error en comando: {error}")
         import traceback
         traceback.print_exc()
-        if DEBUG:
-            # En modo DEBUG enviar detalle técnico al canal
-            await ctx.send(f"❌ Error: ```{str(error)}```")
-        else:
-            # Mensaje genérico para usuarios
-            await ctx.send("❌ Ocurrió un error interno. El administrador puede revisar los logs.")
+        await ctx.send("❌ Ocurrió un error interno. El administrador puede revisar los logs.")
 
 # -----------------------------------
 # !luke — modo normal
@@ -238,10 +234,7 @@ async def luke_command(ctx):
         print(f"Error en !luke: {e}")
         import traceback
         traceback.print_exc()
-        if DEBUG:
-            await ctx.send(f"❌ Error: ```{str(e)}```")
-        else:
-            await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud.")
+        await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud.")
 
 # -----------------------------------
 # !spicyluke — modo SPICY 🔥
@@ -299,10 +292,7 @@ async def spicyluke_command(ctx):
         print(f"Error en !spicyluke: {e}")
         import traceback
         traceback.print_exc()
-        if DEBUG:
-            await ctx.send(f"❌ Error: ```{str(e)}```")
-        else:
-            await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud spicy.")
+        await ctx.send("❌ Ocurrió un error interno al procesar tu solicitud spicy.")
 
 # -----------------------------------
 # !lukeyhelp — instrucciones
@@ -333,9 +323,9 @@ async def lukeytest(ctx):
     try:
         # Test 1: Service account file
         if not os.path.exists(SERVICE_ACCOUNT_FILE):
-            await ctx.send(f"❌ Service account file not found: `{SERVICE_ACCOUNT_FILE}`")
+            await ctx.send("❌ Archivo de cuenta de servicio no encontrado. Contacta al administrador.")
             return
-        await ctx.send(f"✅ Service account file found: `{SERVICE_ACCOUNT_FILE}`")
+        await ctx.send("✅ Archivo de cuenta de servicio: OK")
         
         # Test 2: Connect to Drive
         service = get_drive_service()
