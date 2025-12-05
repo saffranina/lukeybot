@@ -191,6 +191,10 @@ async def on_command_error(ctx, error):
         print(f"Error en comando: {error}")
         import traceback
         traceback.print_exc()
+        try:
+            _log_traceback_to_file(error)
+        except Exception as _e:
+            print(f"Failed to write traceback to error_traces.log: {_e}")
         await ctx.send("❌ Ocurrió un error interno. El administrador puede revisar los logs.")
 
 # -----------------------------------
