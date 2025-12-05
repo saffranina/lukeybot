@@ -146,6 +146,19 @@ async def on_ready():
     print(f"Comandos disponibles: {[cmd.name for cmd in bot.commands]}")
     await bot.change_presence(activity=discord.Game(name="summoning Luke"))
 
+
+@bot.event
+async def on_message(message):
+    # Logear mensajes entrantes para depuración y asegurarnos de procesar comandos
+    try:
+        if message.author.bot:
+            return
+        print(f"Mensaje recibido de {message.author}: {message.content}")
+    except Exception:
+        pass
+
+    await bot.process_commands(message)
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
