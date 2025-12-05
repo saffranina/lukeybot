@@ -199,9 +199,22 @@ async def luke_command(ctx):
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
                     tmp.write(r.content)
                     tmp.flush()
-                    await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
+                    tmp_path = tmp.name
+
+                # Verificar que el archivo temporal fue creado correctamente
+                if not os.path.exists(tmp_path):
+                    print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
+                    await ctx.send("❌ Error interno: archivo temporal no encontrado al preparar el GIF.")
+                else:
+                    try:
+                        await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
+                    finally:
+                        try:
+                            os.remove(tmp_path)
+                        except Exception as e:
+                            print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
             else:
-                await ctx.send("No se pudo descargar el GIF.")
+                await ctx.send(f"No se pudo descargar el GIF. Código HTTP: {r.status_code}")
         else:
             random_color = discord.Color.from_rgb(
                 random.randint(0,255),
@@ -244,9 +257,21 @@ async def spicyluke_command(ctx):
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
                     tmp.write(r.content)
                     tmp.flush()
-                    await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
+                    tmp_path = tmp.name
+
+                if not os.path.exists(tmp_path):
+                    print(f"Error: archivo temporal no encontrado despues de escribir: {tmp_path}")
+                    await ctx.send("❌ Error interno: archivo temporal no encontrado al preparar el GIF spicy.")
+                else:
+                    try:
+                        await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp_path, filename=file['name']))
+                    finally:
+                        try:
+                            os.remove(tmp_path)
+                        except Exception as e:
+                            print(f"Warning: no se pudo eliminar temp file {tmp_path}: {e}")
             else:
-                await ctx.send("No se pudo descargar el GIF spicy.")
+                await ctx.send(f"No se pudo descargar el GIF spicy. Código HTTP: {r.status_code}")
         else:
             spicy_color = discord.Color.from_rgb(
                 random.randint(180,255),
