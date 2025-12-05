@@ -6,6 +6,8 @@ import tempfile
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+import traceback
+import datetime
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -143,6 +145,19 @@ def get_random_image_url():
 
     file_id = random.choice(files)["id"]
     return f"https://drive.google.com/uc?export=view&id={file_id}"
+
+
+def _log_traceback_to_file(exc: Exception):
+    try:
+        tb = traceback.format_exc()
+        ts = datetime.datetime.utcnow().isoformat()
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'error_traces.log')
+        with open(path, 'a', encoding='utf-8') as f:
+            f.write(f"{ts} - {str(exc)}\n")
+            f.write(tb)
+            f.write('\n' + ('-'*80) + '\n')
+    except Exception as e:
+        print(f"Failed to write traceback to file: {e}")
 
 # ==========================
 # Eventos y comandos
