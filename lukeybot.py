@@ -165,7 +165,7 @@ def get_all_media_files_from_folder():
         response = service.files().list(
             q=query,
             spaces="drive",
-            fields="nextPageToken, files(id, name, mimeType)",
+            fields="nextPageToken, files(id, name, mimeType, size)",
             pageToken=page_token,
         ).execute()
 
@@ -270,16 +270,52 @@ async def luke_command(ctx):
         quote = random.choice(RANDOM_QUOTES)
 
         if file['mimeType'] == 'image/gif':
-            # Do not download GIFs (can be > upload limit). Use Drive view URL in an embed.
-            gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
-            random_color = discord.Color.from_rgb(
-                random.randint(0,255),
-                random.randint(0,255),
-                random.randint(0,255),
-            )
-            embed = discord.Embed(title=quote, color=random_color)
-            embed.set_image(url=gif_url)
-            await ctx.send(embed=embed)
+            # Try to upload GIF only if it's small enough for Discord (8 MB default).
+            size = None
+            try:
+                size = int(file.get('size')) if file.get('size') else None
+            except Exception:
+                size = None
+
+            MAX_SIZE = 8 * 1024 * 1024  # 8 MB
+
+            if size and size <= MAX_SIZE:
+                # Safe to download and upload (should be animated when uploaded)
+                r = requests.get(url)
+                if r.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                        tmp.write(r.content)
+                        tmp.flush()
+                        tmp_path = tmp.name
+                    try:
+                        await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
+                    finally:
+                        try:
+                            os.remove(tmp_path)
+                        except Exception as e:
+                            print(f"Warning: could not remove tmp file {tmp_path}: {e}")
+                else:
+                    print(f"Failed to download GIF for upload, HTTP {r.status_code}")
+                    gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+                    random_color = discord.Color.from_rgb(
+                        random.randint(0,255),
+                        random.randint(0,255),
+                        random.randint(0,255),
+                    )
+                    embed = discord.Embed(title=quote, color=random_color)
+                    embed.set_image(url=gif_url)
+                    await ctx.send(embed=embed)
+            else:
+                # Too large or unknown size: use Drive view URL in an embed (may or may not animate)
+                gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+                random_color = discord.Color.from_rgb(
+                    random.randint(0,255),
+                    random.randint(0,255),
+                    random.randint(0,255),
+                )
+                embed = discord.Embed(title=quote, color=random_color)
+                embed.set_image(url=gif_url)
+                await ctx.send(embed=embed)
         else:
             random_color = discord.Color.from_rgb(
                 random.randint(0,255),
@@ -318,20 +354,58 @@ async def spicyluke_command(ctx):
         quote = random.choice(SPICY_QUOTES)
 
         if file['mimeType'] == 'image/gif':
-            # Send spicy GIF via Drive view URL instead of uploading
-            gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
-            spicy_color = discord.Color.from_rgb(
-                random.randint(180,255),
-                random.randint(0,80),
-                random.randint(50,200),
-            )
-            embed = discord.Embed(
-                title=quote,
-                description="🔥 Spicy Mode Activated 🔥",
-                color=spicy_color
-            )
-            embed.set_image(url=gif_url)
-            await ctx.send(embed=embed)
+            # For spicy GIFs, prefer to upload if small enough to preserve animation
+            size = None
+            try:
+                size = int(file.get('size')) if file.get('size') else None
+            except Exception:
+                size = None
+
+            MAX_SIZE = 8 * 1024 * 1024  # 8 MB
+
+            if size and size <= MAX_SIZE:
+                r = requests.get(url)
+                if r.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                        tmp.write(r.content)
+                        tmp.flush()
+                        tmp_path = tmp.name
+                    try:
+                        await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp_path, filename=file['name']))
+                    finally:
+                        try:
+                            os.remove(tmp_path)
+                        except Exception as e:
+                            print(f"Warning: could not remove tmp file {tmp_path}: {e}")
+                else:
+                    print(f"Failed to download spicy GIF for upload, HTTP {r.status_code}")
+                    gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+                    spicy_color = discord.Color.from_rgb(
+                        random.randint(180,255),
+                        random.randint(0,80),
+                        random.randint(50,200),
+                    )
+                    embed = discord.Embed(
+                        title=quote,
+                        description="🔥 Spicy Mode Activated 🔥",
+                        color=spicy_color
+                    )
+                    embed.set_image(url=gif_url)
+                    await ctx.send(embed=embed)
+            else:
+                gif_url = f"https://drive.google.com/uc?export=view&id={file['id']}"
+                spicy_color = discord.Color.from_rgb(
+                    random.randint(180,255),
+                    random.randint(0,80),
+                    random.randint(50,200),
+                )
+                embed = discord.Embed(
+                    title=quote,
+                    description="🔥 Spicy Mode Activated 🔥",
+                    color=spicy_color
+                )
+                embed.set_image(url=gif_url)
+                await ctx.send(embed=embed)
         else:
             spicy_color = discord.Color.from_rgb(
                 random.randint(180,255),
