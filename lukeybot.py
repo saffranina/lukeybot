@@ -2,6 +2,8 @@ import os
 import random
 import requests
 import tempfile
+import subprocess
+import shutil
 
 import discord
 from discord.ext import commands
@@ -23,6 +25,8 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 MAX_GIF_MB = int(os.getenv("MAX_GIF_MB", "50"))  # configurable via .env
 MAX_GIF_SIZE_BYTES = MAX_GIF_MB * 1024 * 1024
+DISCORD_MAX_MB = int(os.getenv("DISCORD_MAX_MB", "8"))
+DISCORD_MAX_BYTES = DISCORD_MAX_MB * 1024 * 1024
 
 if not DISCORD_TOKEN:
     raise RuntimeError("Falta DISCORD_TOKEN en el archivo .env")
@@ -165,6 +169,82 @@ def select_random_file_with_limit(files, max_bytes: int, attempts: int = 10):
 
     return None
 
+def ffmpeg_available() -> bool:
+    return shutil.which("ffmpeg") is not None
+
+def compress_gif_with_ffmpeg(input_path: str, target_bytes: int, attempts: int = 6) -> Optional[str]:
+    """Attempt to compress the GIF using ffmpeg and palette optimization.
+    Returns path to compressed file if successful and <= target_bytes, else None.
+    """
+    if not ffmpeg_available():
+        if DEBUG:
+            print("[DEBUG] ffmpeg no está disponible en el sistema")
+        return None
+
+    base = os.path.splitext(input_path)[0]
+    palette = f"{base}_palette.png"
+    out_path = f"{base}_compressed.gif"
+
+    scale_factor = 1.0
+    fps = 20
+
+    for i in range(attempts):
+        # reduce scale and fps progressively
+        scale = f"iw*{scale_factor}:-1"
+        try:
+            cmd_palette = [
+                "ffmpeg", "-y", "-i", input_path,
+                "-vf", f"fps={fps},scale={scale}:flags=lanczos,palettegen", palette
+            ]
+            subprocess.run(cmd_palette, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+
+            cmd_use = [
+                "ffmpeg", "-y", "-i", input_path, "-i", palette,
+                "-lavfi", f"fps={fps},scale={scale}:flags=lanczos [x]; [x][1:v] paletteuse",
+                out_path
+            ]
+            subprocess.run(cmd_use, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+
+            out_size = os.path.getsize(out_path)
+            if DEBUG:
+                print(f"[DEBUG] Intento {i+1}: size={out_size} bytes, target={target_bytes}")
+            if out_size <= target_bytes:
+                # cleanup palette
+                try:
+                    os.remove(palette)
+                except Exception:
+                    pass
+                return out_path
+
+        except Exception as e:
+            if DEBUG:
+                print(f"[DEBUG] compress error: {e}")
+
+        # make compression stronger
+        scale_factor *= 0.75
+        fps = max(8, int(fps * 0.85))
+
+    # final cleanup
+    try:
+        if os.path.exists(palette):
+            os.remove(palette)
+    except Exception:
+        pass
+
+    # if out_path exists but not small enough, remove it
+    if os.path.exists(out_path):
+        try:
+            if os.path.getsize(out_path) <= target_bytes:
+                return out_path
+        except Exception:
+            pass
+        try:
+            os.remove(out_path)
+        except Exception:
+            pass
+
+    return None
+
 # ==========================
 # Eventos y comandos
 # ==========================
@@ -205,9 +285,39 @@ async def luke_command(ctx):
                         tmp.write(chunk)
                 tmp.flush()
                 tmp_size = os.path.getsize(tmp.name)
+                # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
+                if tmp_size > DISCORD_MAX_BYTES:
+                    if ffmpeg_available():
+                        if DEBUG:
+                            print(f"[DEBUG] GIF {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
+                        compressed = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
+                        if compressed and os.path.exists(compressed):
+                            comp_size = os.path.getsize(compressed)
+                            if comp_size <= DISCORD_MAX_BYTES:
+                                await ctx.send(content=quote, file=discord.File(compressed, filename=file['name']))
+                                try:
+                                    os.remove(compressed)
+                                except Exception:
+                                    pass
+                                return
+                            else:
+                                await ctx.send(f"GIF omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
+                                try:
+                                    os.remove(compressed)
+                                except Exception:
+                                    pass
+                                return
+                        else:
+                            await ctx.send(f"GIF omitido — compresión fallida o ffmpeg no disponible.")
+                            return
+                    else:
+                        await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+                        return
+
                 if tmp_size > MAX_GIF_SIZE_BYTES:
                     await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
                     return
+
                 await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
         else:
             await ctx.send("No se pudo descargar el GIF.")
@@ -254,9 +364,39 @@ async def spicyluke_command(ctx):
                         tmp.write(chunk)
                 tmp.flush()
                 tmp_size = os.path.getsize(tmp.name)
+                # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
+                if tmp_size > DISCORD_MAX_BYTES:
+                    if ffmpeg_available():
+                        if DEBUG:
+                            print(f"[DEBUG] GIF spicy {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
+                        compressed = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
+                        if compressed and os.path.exists(compressed):
+                            comp_size = os.path.getsize(compressed)
+                            if comp_size <= DISCORD_MAX_BYTES:
+                                await ctx.send(content=f"🔥 {quote}", file=discord.File(compressed, filename=file['name']))
+                                try:
+                                    os.remove(compressed)
+                                except Exception:
+                                    pass
+                                return
+                            else:
+                                await ctx.send(f"GIF spicy omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
+                                try:
+                                    os.remove(compressed)
+                                except Exception:
+                                    pass
+                                return
+                        else:
+                            await ctx.send(f"GIF spicy omitido — compresión fallida o ffmpeg no disponible.")
+                            return
+                    else:
+                        await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+                        return
+
                 if tmp_size > MAX_GIF_SIZE_BYTES:
                     await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
                     return
+
                 await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
         else:
             await ctx.send("No se pudo descargar el GIF spicy.")
