@@ -42,7 +42,7 @@ if not SERVICE_ACCOUNT_FILE:
 intents = discord.Intents.default()
 intents.message_content = True  # MUY IMPORTANTE
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 
 bot_name = "LukeyBot"
