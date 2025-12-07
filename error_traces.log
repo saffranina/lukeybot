@@ -1,0 +1,45 @@
+2025-12-05T12:06:05.751542 - 413 Payload Too Large (error code: 40005): Request entity too large
+Traceback (most recent call last):
+  File "/workspaces/lukeybot/lukeybot.py", line 232, in luke_command
+    await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/ext/commands/context.py", line 1102, in send
+    return await super().send(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/abc.py", line 1703, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/http.py", line 773, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 413 Payload Too Large (error code: 40005): Request entity too large
+
+--------------------------------------------------------------------------------
+2025-12-05T12:15:52.622725 - 413 Payload Too Large (error code: 40005): Request entity too large
+Traceback (most recent call last):
+  File "/workspaces/lukeybot/lukeybot.py", line 287, in luke_command
+    await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/ext/commands/context.py", line 1102, in send
+    return await super().send(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/abc.py", line 1703, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/http.py", line 773, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 413 Payload Too Large (error code: 40005): Request entity too large
+
+--------------------------------------------------------------------------------
+2025-12-05T12:16:26.006899 - 413 Payload Too Large (error code: 40005): Request entity too large
+Traceback (most recent call last):
+  File "/workspaces/lukeybot/lukeybot.py", line 287, in luke_command
+    await ctx.send(content=quote, file=discord.File(tmp_path, filename=file['name']))
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/ext/commands/context.py", line 1102, in send
+    return await super().send(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/abc.py", line 1703, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspaces/lukeybot/.venv/lib/python3.12/site-packages/discord/http.py", line 773, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 413 Payload Too Large (error code: 40005): Request entity too large
+
+--------------------------------------------------------------------------------

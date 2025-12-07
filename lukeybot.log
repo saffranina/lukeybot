@@ -1,0 +1,11 @@
+nohup: ignoring input
+[2025-12-06 01:32:11] [INFO    ] discord.client: logging in using static token
+[2025-12-06 01:32:12] [INFO    ] discord.gateway: Shard ID None has connected to Gateway (Session ID: 198f76840be2ce1003e9ba64748630e3).
+[2025-12-06 01:33:23] [ERROR   ] discord.ext.commands.bot: Ignoring exception in command None
+discord.ext.commands.errors.CommandNotFound: Command "help" is not found
+[2025-12-06 01:33:52] [ERROR   ] discord.ext.commands.bot: Ignoring exception in command None
+discord.ext.commands.errors.CommandNotFound: Command "spiceyluke" is not found
+[2025-12-06 01:52:16] [ERROR   ] discord.ext.commands.bot: Ignoring exception in command None
+discord.ext.commands.errors.CommandNotFound: Command "help" is not found
+[2025-12-06 02:15:31] [ERROR   ] discord.ext.commands.bot: Ignoring exception in command None
+discord.ext.commands.errors.CommandNotFound: Command "lukehelp" is not found

@@ -4,6 +4,10 @@ import requests
 import tempfile
 import subprocess
 import shutil
+import logging
+import atexit
+import signal
+import sys
 
 import discord
 from discord.ext import commands
@@ -14,6 +18,64 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # ==========================
+# Configuración de Logging
+# ==========================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger('lukeybot')
+
+# Lista global para rastrear archivos temporales
+temp_files_to_cleanup = []
+
+# ==========================
+# Limpieza de archivos temporales
+# ==========================
+
+def cleanup_temp_files():
+    """Limpia todos los archivos temporales al finalizar."""
+    logger.info(f"Limpiando {len(temp_files_to_cleanup)} archivos temporales...")
+    for filepath in temp_files_to_cleanup:
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                logger.debug(f"Eliminado: {filepath}")
+        except Exception as e:
+            logger.warning(f"No se pudo eliminar {filepath}: {e}")
+    temp_files_to_cleanup.clear()
+
+def register_temp_file(filepath: str):
+    """Registra un archivo temporal para limpieza posterior."""
+    temp_files_to_cleanup.append(filepath)
+
+def cleanup_temp_file(filepath: str):
+    """Limpia un archivo temporal inmediatamente."""
+    try:
+        if filepath in temp_files_to_cleanup:
+            temp_files_to_cleanup.remove(filepath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            logger.debug(f"Limpiado inmediato: {filepath}")
+    except Exception as e:
+        logger.warning(f"Error limpiando {filepath}: {e}")
+
+def signal_handler(sig, frame):
+    """Maneja señales de terminación para limpiar antes de salir."""
+    logger.info(f"Señal {sig} recibida, limpiando...")
+    cleanup_temp_files()
+    sys.exit(0)
+
+# Registrar handlers de limpieza
+atexit.register(cleanup_temp_files)
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+# ==========================
 # Cargar variables de entorno
 # ==========================
 
@@ -22,6 +84,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DRIVE_FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")  # JSON como string
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 MAX_GIF_MB = int(os.getenv("MAX_GIF_MB", "50"))  # configurable via .env
 MAX_GIF_SIZE_BYTES = MAX_GIF_MB * 1024 * 1024
@@ -29,11 +92,16 @@ DISCORD_MAX_MB = int(os.getenv("DISCORD_MAX_MB", "8"))
 DISCORD_MAX_BYTES = DISCORD_MAX_MB * 1024 * 1024
 
 if not DISCORD_TOKEN:
+    logger.error("Falta DISCORD_TOKEN en el archivo .env")
     raise RuntimeError("Falta DISCORD_TOKEN en el archivo .env")
 if not DRIVE_FOLDER_ID:
+    logger.error("Falta DRIVE_FOLDER_ID en el archivo .env")
     raise RuntimeError("Falta DRIVE_FOLDER_ID en el archivo .env")
-if not SERVICE_ACCOUNT_FILE:
-    raise RuntimeError("Falta GOOGLE_SERVICE_ACCOUNT_FILE en el archivo .env")
+if not SERVICE_ACCOUNT_FILE and not SERVICE_ACCOUNT_JSON:
+    logger.error("Falta GOOGLE_SERVICE_ACCOUNT_FILE o GOOGLE_SERVICE_ACCOUNT_JSON en el archivo .env")
+    raise RuntimeError("Falta GOOGLE_SERVICE_ACCOUNT_FILE o GOOGLE_SERVICE_ACCOUNT_JSON en el archivo .env")
+
+logger.info(f"Configuración cargada: MAX_GIF_MB={MAX_GIF_MB}, DISCORD_MAX_MB={DISCORD_MAX_MB}, DEBUG={DEBUG}")
 
 # ==========================
 # Configuración Discord
@@ -42,7 +110,14 @@ if not SERVICE_ACCOUNT_FILE:
 intents = discord.Intents.default()
 intents.message_content = True  # MUY IMPORTANTE
 
+bot_name = "LukeyBot"
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+# Asegurar que el comando por defecto 'help' esté eliminado
+try:
+    bot.remove_command('help')
+except Exception:
+    # en caso de que ya esté eliminado o no exista, ignorar
+    pass
 
 
 bot_name = "LukeyBot"
@@ -96,40 +171,60 @@ SPICY_QUOTES = [
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 def get_drive_service():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
-    return build("drive", "v3", credentials=creds)
+    try:
+        # Priorizar JSON desde variable de entorno (para Railway)
+        if SERVICE_ACCOUNT_JSON:
+            import json
+            service_account_info = json.loads(SERVICE_ACCOUNT_JSON)
+            creds = service_account.Credentials.from_service_account_info(
+                service_account_info, scopes=SCOPES
+            )
+        elif SERVICE_ACCOUNT_FILE:
+            creds = service_account.Credentials.from_service_account_file(
+                SERVICE_ACCOUNT_FILE, scopes=SCOPES
+            )
+        else:
+            raise ValueError("No se encontró configuración de Service Account")
+        
+        return build("drive", "v3", credentials=creds)
+    except Exception as e:
+        logger.error(f"Error conectando con Google Drive: {e}")
+        raise
 
 def get_all_media_files_from_folder():
-    service = get_drive_service()
+    try:
+        service = get_drive_service()
 
-    query = (
-        f"'{DRIVE_FOLDER_ID}' in parents and ("
-        "mimeType = 'image/jpeg' or "
-        "mimeType = 'image/png' or "
-        "mimeType = 'image/gif'"
-        ") and trashed = false"
-    )
+        query = (
+            f"'{DRIVE_FOLDER_ID}' in parents and ("
+            "mimeType = 'image/jpeg' or "
+            "mimeType = 'image/png' or "
+            "mimeType = 'image/gif'"
+            ") and trashed = false"
+        )
 
-    files = []
-    page_token = None
+        files = []
+        page_token = None
 
-    while True:
-        response = service.files().list(
-            q=query,
-            spaces="drive",
-            fields="nextPageToken, files(id, name, mimeType)",
-            pageToken=page_token,
-        ).execute()
+        while True:
+            response = service.files().list(
+                q=query,
+                spaces="drive",
+                fields="nextPageToken, files(id, name, mimeType)",
+                pageToken=page_token,
+            ).execute()
 
-        files.extend(response.get("files", []))
-        page_token = response.get("nextPageToken")
+            files.extend(response.get("files", []))
+            page_token = response.get("nextPageToken")
 
-        if not page_token:
-            break
+            if not page_token:
+                break
 
-    return files
+        logger.info(f"Cargados {len(files)} archivos desde Drive")
+        return files
+    except Exception as e:
+        logger.error(f"Error obteniendo archivos de Drive: {e}")
+        return []
 
 def get_random_image_url():
     files = get_all_media_files_from_folder()
@@ -177,13 +272,14 @@ def compress_gif_with_ffmpeg(input_path: str, target_bytes: int, attempts: int =
     Returns path to compressed file if successful and <= target_bytes, else None.
     """
     if not ffmpeg_available():
-        if DEBUG:
-            print("[DEBUG] ffmpeg no está disponible en el sistema")
+        logger.debug("ffmpeg no está disponible en el sistema")
         return None
 
     base = os.path.splitext(input_path)[0]
     palette = f"{base}_palette.png"
     out_path = f"{base}_compressed.gif"
+    register_temp_file(palette)
+    register_temp_file(out_path)
 
     scale_factor = 1.0
     fps = 20
@@ -206,30 +302,23 @@ def compress_gif_with_ffmpeg(input_path: str, target_bytes: int, attempts: int =
             subprocess.run(cmd_use, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
 
             out_size = os.path.getsize(out_path)
-            if DEBUG:
-                print(f"[DEBUG] Intento {i+1}: size={out_size} bytes, target={target_bytes}")
+            logger.debug(f"Intento compresión {i+1}: size={out_size} bytes, target={target_bytes}")
             if out_size <= target_bytes:
                 # cleanup palette
-                try:
-                    os.remove(palette)
-                except Exception:
-                    pass
+                cleanup_temp_file(palette)
                 return out_path
 
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Timeout en compresión ffmpeg (intento {i+1})")
         except Exception as e:
-            if DEBUG:
-                print(f"[DEBUG] compress error: {e}")
+            logger.debug(f"Error en compresión: {e}")
 
         # make compression stronger
         scale_factor *= 0.75
         fps = max(8, int(fps * 0.85))
 
     # final cleanup
-    try:
-        if os.path.exists(palette):
-            os.remove(palette)
-    except Exception:
-        pass
+    cleanup_temp_file(palette)
 
     # if out_path exists but not small enough, remove it
     if os.path.exists(out_path):
@@ -238,10 +327,7 @@ def compress_gif_with_ffmpeg(input_path: str, target_bytes: int, attempts: int =
                 return out_path
         except Exception:
             pass
-        try:
-            os.remove(out_path)
-        except Exception:
-            pass
+        cleanup_temp_file(out_path)
 
     return None
 
@@ -251,168 +337,247 @@ def compress_gif_with_ffmpeg(input_path: str, target_bytes: int, attempts: int =
 
 @bot.event
 async def on_ready():
-    print(f"{bot_name} ONLINE como {bot.user} (id: {bot.user.id})")
-    await bot.change_presence(activity=discord.Game(name="summoning Luke"))
+    logger.info(f"{bot_name} ONLINE como {bot.user} (id: {bot.user.id})")
+    try:
+        await bot.change_presence(activity=discord.Game(name="summoning Luke"))
+    except Exception as e:
+        logger.error(f"Error cambiando presencia: {e}")
+
+@bot.event
+async def on_disconnect():
+    logger.warning("Bot desconectado de Discord")
+
+@bot.event
+async def on_resumed():
+    logger.info("Bot reconectado a Discord")
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    logger.error(f"Error en evento {event}", exc_info=True)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return  # Ignorar comandos no encontrados
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"Falta un argumento requerido: {error.param.name}")
+    else:
+        logger.error(f"Error en comando {ctx.command}: {error}", exc_info=True)
+        await ctx.send("Ocurrió un error al ejecutar el comando. Intenta de nuevo.")
 
 # -----------------------------------
 # !luke — modo normal
 # -----------------------------------
 @bot.command(name="luke", help="Random Luke image + normal quote")
 async def luke_command(ctx):
-    files = get_all_media_files_from_folder()
-    if DEBUG:
-        await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
-    if not files:
-        await ctx.send("No images found in Drive folder.")
-        return
+    tmp_file = None
+    compressed_file = None
+    try:
+        files = get_all_media_files_from_folder()
+        if DEBUG:
+            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+        if not files:
+            await ctx.send("No images found in Drive folder.")
+            return
 
-    # Seleccionamos un archivo que cumpla el límite de tamaño para GIFs
-    file = select_random_file_with_limit(files, MAX_GIF_SIZE_BYTES)
-    if not file:
-        await ctx.send(f"No se encontró ninguna imagen/GIF dentro del límite de {MAX_GIF_MB} MB.")
-        return
+        # Seleccionamos un archivo que cumpla el límite de tamaño para GIFs
+        file = select_random_file_with_limit(files, MAX_GIF_SIZE_BYTES)
+        if not file:
+            await ctx.send(f"No se encontró ninguna imagen/GIF dentro del límite de {MAX_GIF_MB} MB.")
+            return
 
-    url = f"https://drive.google.com/uc?export=download&id={file['id']}"
-    quote = random.choice(RANDOM_QUOTES)
+        url = f"https://drive.google.com/uc?export=download&id={file['id']}"
+        quote = random.choice(RANDOM_QUOTES)
 
-    if file['mimeType'] == 'image/gif':
-        # Descargamos y validamos el tamaño final antes de enviar
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        tmp.write(chunk)
-                tmp.flush()
-                tmp_size = os.path.getsize(tmp.name)
-                # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
-                if tmp_size > DISCORD_MAX_BYTES:
-                    if ffmpeg_available():
-                        if DEBUG:
-                            print(f"[DEBUG] GIF {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
-                        compressed = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
-                        if compressed and os.path.exists(compressed):
-                            comp_size = os.path.getsize(compressed)
-                            if comp_size <= DISCORD_MAX_BYTES:
-                                await ctx.send(content=quote, file=discord.File(compressed, filename=file['name']))
-                                try:
-                                    os.remove(compressed)
-                                except Exception:
-                                    pass
-                                return
+        if file['mimeType'] == 'image/gif':
+            # Descargamos y validamos el tamaño final antes de enviar
+            r = requests.get(url, stream=True, timeout=30)
+            if r.status_code == 200:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                    tmp_file = tmp.name
+                    register_temp_file(tmp_file)
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            tmp.write(chunk)
+                    tmp.flush()
+                    tmp_size = os.path.getsize(tmp.name)
+                    # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
+                    if tmp_size > DISCORD_MAX_BYTES:
+                        if ffmpeg_available():
+                            logger.debug(f"GIF {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
+                            compressed_file = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
+                            if compressed_file and os.path.exists(compressed_file):
+                                comp_size = os.path.getsize(compressed_file)
+                                if comp_size <= DISCORD_MAX_BYTES:
+                                    await ctx.send(content=quote, file=discord.File(compressed_file, filename=file['name']))
+                                    cleanup_temp_file(compressed_file)
+                                    cleanup_temp_file(tmp_file)
+                                    return
+                                else:
+                                    await ctx.send(f"GIF omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
+                                    cleanup_temp_file(compressed_file)
+                                    cleanup_temp_file(tmp_file)
+                                    return
                             else:
-                                await ctx.send(f"GIF omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
-                                try:
-                                    os.remove(compressed)
-                                except Exception:
-                                    pass
+                                await ctx.send(f"GIF omitido — compresión fallida o ffmpeg no disponible.")
+                                cleanup_temp_file(tmp_file)
                                 return
                         else:
-                            await ctx.send(f"GIF omitido — compresión fallida o ffmpeg no disponible.")
+                            await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+                            cleanup_temp_file(tmp_file)
                             return
-                    else:
-                        await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+
+                    if tmp_size > MAX_GIF_SIZE_BYTES:
+                        await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
+                        cleanup_temp_file(tmp_file)
                         return
 
-                if tmp_size > MAX_GIF_SIZE_BYTES:
-                    await ctx.send(f"GIF omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
-                    return
-
-                await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
+                    sent = await ctx.send(content=quote, file=discord.File(tmp.name, filename=file['name']))
+                    cleanup_temp_file(tmp_file)
+                    try:
+                        await sent.add_reaction("✨")
+                    except Exception:
+                        pass
+            else:
+                sent = await ctx.send("No se pudo descargar el GIF.")
+                try:
+                    await sent.add_reaction("✨")
+                except Exception:
+                    pass
         else:
-            await ctx.send("No se pudo descargar el GIF.")
-    else:
-        random_color = discord.Color.from_rgb(
-            random.randint(0,255),
-            random.randint(0,255),
-            random.randint(0,255),
-        )
-        embed = discord.Embed(
-            title=quote,
-            color=random_color
-        )
-        embed.set_image(url=url)
-        await ctx.send(embed=embed)
+            random_color = discord.Color.from_rgb(
+                random.randint(0,255),
+                random.randint(0,255),
+                random.randint(0,255),
+            )
+            embed = discord.Embed(
+                title=quote,
+                color=random_color
+            )
+            embed.set_image(url=url)
+            sent = await ctx.send(embed=embed)
+            try:
+                await sent.add_reaction("✨")
+            except Exception:
+                pass
+    except requests.Timeout:
+        logger.error("Timeout descargando imagen")
+        await ctx.send("Timeout al descargar la imagen. Intenta de nuevo.")
+    except Exception as e:
+        logger.error(f"Error en comando !luke: {e}", exc_info=True)
+        await ctx.send("Ocurrió un error. Intenta de nuevo.")
+    finally:
+        if tmp_file:
+            cleanup_temp_file(tmp_file)
+        if compressed_file:
+            cleanup_temp_file(compressed_file)
 
 # -----------------------------------
 # !spicyluke — modo SPICY 🔥
 # -----------------------------------
 @bot.command(name="spicyluke", help="SPICY Luke image + spicy quote 🔥")
 async def spicyluke_command(ctx):
-    files = get_all_media_files_from_folder()
-    if DEBUG:
-        await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
-    if not files:
-        await ctx.send("No spicy material found in Drive 😳")
-        return
+    tmp_file = None
+    compressed_file = None
+    try:
+        files = get_all_media_files_from_folder()
+        if DEBUG:
+            await ctx.send(f"[DEBUG] Archivos en Drive: {len(files)}")
+        if not files:
+            await ctx.send("No spicy material found in Drive 😳")
+            return
 
-    # Seleccionamos un archivo que cumpla el límite de tamaño para GIFs
-    file = select_random_file_with_limit(files, MAX_GIF_SIZE_BYTES)
-    if not file:
-        await ctx.send(f"No se encontró ninguna imagen/GIF spicy dentro del límite de {MAX_GIF_MB} MB.")
-        return
+        # Seleccionamos un archivo que cumpla el límite de tamaño para GIFs
+        file = select_random_file_with_limit(files, MAX_GIF_SIZE_BYTES)
+        if not file:
+            await ctx.send(f"No se encontró ninguna imagen/GIF spicy dentro del límite de {MAX_GIF_MB} MB.")
+            return
 
-    url = f"https://drive.google.com/uc?export=download&id={file['id']}"
-    quote = random.choice(SPICY_QUOTES)
+        url = f"https://drive.google.com/uc?export=download&id={file['id']}"
+        quote = random.choice(SPICY_QUOTES)
 
-    if file['mimeType'] == 'image/gif':
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        tmp.write(chunk)
-                tmp.flush()
-                tmp_size = os.path.getsize(tmp.name)
-                # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
-                if tmp_size > DISCORD_MAX_BYTES:
-                    if ffmpeg_available():
-                        if DEBUG:
-                            print(f"[DEBUG] GIF spicy {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
-                        compressed = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
-                        if compressed and os.path.exists(compressed):
-                            comp_size = os.path.getsize(compressed)
-                            if comp_size <= DISCORD_MAX_BYTES:
-                                await ctx.send(content=f"🔥 {quote}", file=discord.File(compressed, filename=file['name']))
-                                try:
-                                    os.remove(compressed)
-                                except Exception:
-                                    pass
-                                return
+        if file['mimeType'] == 'image/gif':
+            r = requests.get(url, stream=True, timeout=30)
+            if r.status_code == 200:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as tmp:
+                    tmp_file = tmp.name
+                    register_temp_file(tmp_file)
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            tmp.write(chunk)
+                    tmp.flush()
+                    tmp_size = os.path.getsize(tmp.name)
+                    # If exceeds Discord per-file limit, attempt to compress to DISCORD_MAX_BYTES
+                    if tmp_size > DISCORD_MAX_BYTES:
+                        if ffmpeg_available():
+                            logger.debug(f"GIF spicy {file['name']} es {tmp_size} bytes, intentando comprimir a {DISCORD_MAX_BYTES} bytes")
+                            compressed_file = compress_gif_with_ffmpeg(tmp.name, DISCORD_MAX_BYTES)
+                            if compressed_file and os.path.exists(compressed_file):
+                                comp_size = os.path.getsize(compressed_file)
+                                if comp_size <= DISCORD_MAX_BYTES:
+                                    await ctx.send(content=f"🔥 {quote}", file=discord.File(compressed_file, filename=file['name']))
+                                    cleanup_temp_file(compressed_file)
+                                    cleanup_temp_file(tmp_file)
+                                    return
+                                else:
+                                    await ctx.send(f"GIF spicy omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
+                                    cleanup_temp_file(compressed_file)
+                                    cleanup_temp_file(tmp_file)
+                                    return
                             else:
-                                await ctx.send(f"GIF spicy omitido — no fue posible reducirlo por debajo de {DISCORD_MAX_MB} MB.")
-                                try:
-                                    os.remove(compressed)
-                                except Exception:
-                                    pass
+                                await ctx.send(f"GIF spicy omitido — compresión fallida o ffmpeg no disponible.")
+                                cleanup_temp_file(tmp_file)
                                 return
                         else:
-                            await ctx.send(f"GIF spicy omitido — compresión fallida o ffmpeg no disponible.")
+                            await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+                            cleanup_temp_file(tmp_file)
                             return
-                    else:
-                        await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB) y `ffmpeg` no está disponible para comprimir.")
+
+                    if tmp_size > MAX_GIF_SIZE_BYTES:
+                        await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
+                        cleanup_temp_file(tmp_file)
                         return
 
-                if tmp_size > MAX_GIF_SIZE_BYTES:
-                    await ctx.send(f"GIF spicy omitido — demasiado grande ({tmp_size/1024/1024:.1f} MB). Límite: {MAX_GIF_MB} MB.")
-                    return
-
-                await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
+                    sent = await ctx.send(content=f"🔥 {quote}", file=discord.File(tmp.name, filename=file['name']))
+                    cleanup_temp_file(tmp_file)
+                    try:
+                        await sent.add_reaction("✨")
+                    except Exception:
+                        pass
+            else:
+                sent = await ctx.send("No se pudo descargar el GIF spicy.")
+                try:
+                    await sent.add_reaction("✨")
+                except Exception:
+                    pass
         else:
-            await ctx.send("No se pudo descargar el GIF spicy.")
-    else:
-        spicy_color = discord.Color.from_rgb(
-            random.randint(180,255),
-            random.randint(0,80),
-            random.randint(50,200),
-        )
-        embed = discord.Embed(
-            title=quote,
-            description="🔥 Spicy Mode Activated 🔥",
-            color=spicy_color
-        )
-        embed.set_image(url=url)
-        await ctx.send(embed=embed)
+            spicy_color = discord.Color.from_rgb(
+                random.randint(180,255),
+                random.randint(0,80),
+                random.randint(50,200),
+            )
+            embed = discord.Embed(
+                title=quote,
+                description="🔥 Spicy Mode Activated 🔥",
+                color=spicy_color
+            )
+            embed.set_image(url=url)
+            sent = await ctx.send(embed=embed)
+            try:
+                await sent.add_reaction("✨")
+            except Exception:
+                pass
+    except requests.Timeout:
+        logger.error("Timeout descargando imagen spicy")
+        await ctx.send("Timeout al descargar la imagen. Intenta de nuevo.")
+    except Exception as e:
+        logger.error(f"Error en comando !spicyluke: {e}", exc_info=True)
+        await ctx.send("Ocurrió un error. Intenta de nuevo.")
+    finally:
+        if tmp_file:
+            cleanup_temp_file(tmp_file)
+        if compressed_file:
+            cleanup_temp_file(compressed_file)
 
 # -----------------------------------
 # !lukeyhelp — instrucciones
@@ -432,8 +597,24 @@ async def lukeyhelp(ctx):
     )
     await ctx.send(embed=embed)
 
+
+@bot.command(name="ping", help="Check bot latency")
+async def ping(ctx):
+    latency_ms = round(bot.latency * 1000)
+    await ctx.send(f"Pong! Latencia: {latency_ms} ms")
+
 # ==========================
 # Run bot
 # ==========================
 
-bot.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    try:
+        logger.info("Iniciando LukeyBot...")
+        bot.run(DISCORD_TOKEN, reconnect=True)
+    except KeyboardInterrupt:
+        logger.info("Bot detenido por usuario")
+    except Exception as e:
+        logger.error(f"Error fatal: {e}", exc_info=True)
+    finally:
+        cleanup_temp_files()
+        logger.info("LukeyBot finalizado")

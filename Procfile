@@ -1,1 +1,1 @@
-web: python lukeybot.py
+worker: python lukeybot.py
