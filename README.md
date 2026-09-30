@@ -18,6 +18,8 @@ Proyecto de R para la lectura crítica del artículo:
 | `R/04_simulacion_edad.R` | **Parte 3:** DAG y simulación de la confusión por edad (datos **simulados**) |
 | `reporte.qmd` | **Parte 4:** reporte Quarto que junta todo con texto, código y gráficos |
 | `presentacion.html` | Presentación interactiva para la clase (se abre en el navegador; ← → para avanzar) |
+| `R/05_generar_sitio.R` | Genera el sitio web en `docs/` (presentación + reporte) |
+| `docs/` | Sitio publicado con GitHub Pages |
 
 ## Cómo usarlo
 
@@ -31,6 +33,12 @@ Proyecto de R para la lectura crítica del artículo:
 
 Necesitas [Quarto](https://quarto.org/docs/get-started/). Las versiones recientes
 de RStudio ya lo traen instalado.
+
+## Sitio web (GitHub Pages)
+
+La carpeta `docs/` tiene la presentación (`index.html`) y el reporte
+(`reporte.html`). Si cambias alguno, corre `R/05_generar_sitio.R` y haz commit
+de `docs/`.
 
 ## Sobre la simulación
 
