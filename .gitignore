@@ -1,0 +1,15 @@
+# R / RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Quarto
+/.quarto/
+reporte_files/
+reporte.html
+reporte.docx
+reporte.pdf
+
+# Gráficos que R guarda al correr scripts sin RStudio
+Rplots.pdf

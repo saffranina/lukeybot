@@ -1,0 +1,721 @@
+<title>PlomoBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Sans+3:ital,wght@0,400..700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Concepto: una diapositiva por pantalla, sobre gris "plomo" frío; la casilla Pb 82
+   de la tabla periódica como sello; naranja = expuestos (Pb ≥ 10), azul = no expuestos. */
+:root {
+  --bg: #eef0f2;
+  --surface: #f9fafb;
+  --ink: #1b212b;
+  --muted: #56606e;
+  --line: #cfd4db;
+  --lead: #5b6878;
+  --exp: #c8641e;
+  --noexp: #2f64a8;
+  --accent: #2f64a8;
+  --good: #2e7d4f;
+  --bad: #b3372b;
+  --tint: #e2e6eb;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161a20; --surface: #1f252d; --ink: #e6e9ee; --muted: #a2abb8; --line: #36404c;
+    --lead: #93a1b3; --exp: #eb8a45; --noexp: #6fa0e6; --accent: #6fa0e6; --good: #5cbf85;
+    --bad: #ec6f62; --tint: #29313b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161a20; --surface: #1f252d; --ink: #e6e9ee; --muted: #a2abb8; --line: #36404c;
+  --lead: #93a1b3; --exp: #eb8a45; --noexp: #6fa0e6; --accent: #6fa0e6; --good: #5cbf85;
+  --bad: #ec6f62; --tint: #29313b; color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body);
+  font-size: 18px; line-height: 1.5; display: flex; flex-direction: column;
+}
+* { box-sizing: border-box; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+p, ul, ol { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.deck { flex: 1; min-height: 0; position: relative; }
+.slide {
+  position: absolute; inset: 0; overflow-y: auto; padding: 40px 16px 24px;
+  display: flex; justify-content: center; outline: none;
+}
+.slide:not(.activa) { display: none; }
+.lienzo { width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 24px; }
+.ceja { font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+h2 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.08; font-weight: 700; }
+h3 { font-size: 21px; font-weight: 650; }
+.bajada { font-size: 20px; color: var(--muted); max-width: 62ch; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.cols > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.grande { font-family: var(--display); font-size: 44px; font-weight: 750; line-height: 1; }
+.chico { font-size: 15px; color: var(--muted); }
+.exp { color: var(--exp); } .noexp { color: var(--noexp); }
+ul.lista { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.nota { font-size: 15px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
+
+/* Portada */
+.portada { justify-content: center; min-height: 100%; gap: 28px; }
+.pb {
+  width: 132px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 6px; padding: 10px 12px;
+  display: flex; flex-direction: column; justify-content: space-between; background: var(--surface);
+}
+.pb .z { font-family: var(--mono); font-size: 15px; }
+.pb .s { font-family: var(--display); font-size: 52px; font-weight: 750; line-height: 1; }
+.pb .m { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.portada h1 { font-size: clamp(38px, 6.4vw, 76px); line-height: 1.02; font-weight: 750; max-width: 16ch; }
+.cita { font-size: 17px; color: var(--muted); }
+
+/* Botones y controles */
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px;
+  cursor: pointer; font-weight: 600; font-size: 16px;
+}
+.btn:hover { border-color: var(--ink); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.fila { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+label.control { display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--muted); }
+label.control b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="number"] {
+  width: 90px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+  font-family: var(--mono);
+}
+.opcion {
+  text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 12px 14px; cursor: pointer; font-size: 17px;
+}
+.opcion:hover { border-color: var(--ink); }
+.opcion.ok { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good); }
+.opcion.mal { border-color: var(--bad); box-shadow: inset 4px 0 0 var(--bad); }
+.veredicto { font-weight: 600; }
+.chip { display: inline-block; font-family: var(--mono); font-size: 13px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+
+/* Tablas */
+.tabla-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 17px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 15px; color: var(--muted); font-weight: 600; }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+svg text { font-family: var(--mono); font-size: 13px; fill: var(--muted); }
+svg .etq { fill: var(--ink); font-weight: 600; }
+
+/* Notas del presentador */
+details.guion { font-size: 15px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+details.guion summary { cursor: pointer; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+details.guion p { margin-top: 6px; max-width: 75ch; }
+
+/* Barra de navegación */
+.barra {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line); background: var(--surface);
+}
+.barra .titulo-sec { font-size: 15px; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.puntos { display: flex; gap: 5px; flex-wrap: wrap; }
+.punto { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--lead); background: transparent; padding: 0; cursor: pointer; }
+.punto.activo { background: var(--ink); border-color: var(--ink); }
+.nav-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-size: 18px; }
+.nav-btn:disabled { opacity: 0.35; cursor: default; }
+@media (max-width: 640px) {
+  .puntos { display: none; }
+  .grande { font-size: 36px; }
+  .slide { padding-top: 24px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slide.activa .lienzo { animation: entra 0.28s ease-out; }
+  @keyframes entra { from { transform: translateY(8px); } to { transform: none; } }
+}
+</style>
+
+<main class="deck" id="deck">
+
+<!-- 1 Portada -->
+<section class="slide" data-titulo="Portada">
+  <div class="lienzo portada">
+    <div class="pb" aria-label="Plomo, número atómico 82, masa 207,2">
+      <span class="z">82</span><span class="s">Pb</span><span class="m">207,2</span>
+    </div>
+    <p class="ceja">PlomoBot · Lectura crítica · Epidemiología</p>
+    <h1>Plomo en sangre y coordinación visomanual en niños</h1>
+    <p class="cita">Squillante G, Rojas M, Medina E, Seijas D, Terán de Rojas O. <i>Gac Méd Caracas</i>. 2005;113(1):50-57.</p>
+    <p class="chico">Usa ← → o los botones de abajo para avanzar. Las diapositivas con controles se pueden manipular en vivo.</p>
+  </div>
+</section>
+
+<!-- 2 Resumen -->
+<section class="slide" data-titulo="Resumen del estudio">
+  <div class="lienzo">
+    <p class="ceja">El estudio</p>
+    <h2>¿El plomo en sangre se asocia con peor coordinación visomanual?</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Quiénes</h3>
+        <p>Niños de 4 a 9 años que viven en el sector Michelena de Valencia, Venezuela, zona señalada como “crítica” por contaminación con plomo.</p>
+        <p><span class="num">156</span> niños en dos colegios → <span class="num">60</span> seleccionados al azar (35 varones, 25 niñas; edad media 7,3 años).</p>
+      </div>
+      <div class="panel">
+        <h3>Qué midieron</h3>
+        <ul class="lista">
+          <li>Plomo en sangre (Pb-S)</li>
+          <li>Test de integración visomanual de Beery</li>
+          <li>Encuesta médico-ambiental: fuentes de plomo cercanas y hábito mano-boca</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Qué encontraron</h3>
+        <p><span class="grande num">61,7 %</span><br><span class="chico">con Pb-S ≥ 10 µg/dL (media 10,5 ± 3)</span></p>
+        <p><span class="grande num">80 %</span><br><span class="chico">con desempeño “inferior” en el Beery</span></p>
+      </div>
+    </div>
+    <p class="nota">Conclusión de los autores: no hay diferencia significativa en el plomo entre niños con Beery inferior y normal (P = 0,834). Recomiendan un estudio de casos y controles.</p>
+    <details class="guion"><summary>Qué decir</summary><p>Presentar la pregunta en una frase. Remarcar que la zona ya se sabía contaminada y que el 80 % de Beery inferior es altísimo: vamos a ver si el análisis permitía responder la pregunta.</p></details>
+  </div>
+</section>
+
+<!-- 3 Exposición y desenlace -->
+<section class="slide" data-titulo="Exposición y desenlace">
+  <div class="lienzo">
+    <p class="ceja">Conceptos</p>
+    <h2>Exposición y desenlace</h2>
+    <div class="cols">
+      <div class="panel" style="border-top: 4px solid var(--exp)">
+        <h3>Exposición</h3>
+        <p>La posible causa. Ocurre primero.</p>
+        <p class="chico">Aquí: plomo en sangre ≥ 10 µg/dL.</p>
+      </div>
+      <div class="panel" style="border-top: 4px solid var(--noexp)">
+        <h3>Desenlace</h3>
+        <p>El efecto en la salud. Ocurre después.</p>
+        <p class="chico">Aquí: Beery “inferior” (alteración visomanual).</p>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Truco: arma la frase «¿X produce Y?»</h3>
+      <p>X es la exposición y Y es el desenlace. Prueba con la pregunta del estudio:</p>
+      <div class="fila" role="group" aria-label="Elige la frase correcta">
+        <button class="opcion" data-frase="bien">¿El plomo produce alteración visomanual?</button>
+        <button class="opcion" data-frase="mal">¿La alteración visomanual produce plomo?</button>
+      </div>
+      <p class="veredicto" id="fraseRes" aria-live="polite"></p>
+    </div>
+    <div class="cols">
+      <div class="panel"><h3>Desenlace = la pregunta</h3><p>¿Cómo está la coordinación visomanual de estos niños? Se define antes de medir. Va en Métodos.</p></div>
+      <div class="panel"><h3>Resultado = la respuesta</h3><p>80 % con Beery inferior, sin asociación con el plomo. Se obtiene al medir. Va en Resultados.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 Medición de la exposición -->
+<section class="slide" data-titulo="Cómo se midió la exposición">
+  <div class="lienzo">
+    <p class="ceja">Métodos · Exposición</p>
+    <h2>Plomo en sangre, medido en laboratorio</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Técnica</h3>
+        <ul class="lista">
+          <li>Espectrofotometría de absorción atómica (Perkin Elmer 3110)</li>
+          <li>Método 8003 de NIOSH</li>
+          <li>Respaldo de un control de calidad interlaboratorios internacional</li>
+        </ul>
+        <p class="nota">Buena medición: objetiva, individual y validada. El punto débil no está aquí.</p>
+      </div>
+      <div class="panel">
+        <h3>Punto de corte: 10 µg/dL (CDC, 1991)</h3>
+        <label class="control" for="pbSlider">Mueve el nivel de plomo: <b id="pbVal">10,5 µg/dL</b>
+          <input type="range" id="pbSlider" min="0" max="20" step="0.1" value="10.5">
+        </label>
+        <svg id="pbRegla" viewBox="0 0 400 70" role="img" aria-label="Regla de plomo en sangre con los puntos de corte"></svg>
+        <p id="pbClase" class="veredicto" aria-live="polite"></p>
+        <p class="chico">Hoy el CDC usa un valor de referencia de 3,5 µg/dL (2021): con ese corte, casi todos estos niños estarían por encima.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Otras variables de la encuesta</h3>
+      <p>Sexo, edad, fuentes de plomo a ≤ 4 cuadras de la casa (vías de alto tráfico 80 %, paradas de autobús 73 %, plantas químicas 57 %) y hábito mano-boca (lápiz de grafito 40 %).</p>
+      <p class="chico">Errata: el resumen y el Cuadro 1 escriben “mg/dL”; la unidad correcta es µg/dL.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 Medición del desenlace -->
+<section class="slide" data-titulo="Cómo se midió el desenlace">
+  <div class="lienzo">
+    <p class="ceja">Métodos · Desenlace</p>
+    <h2>Test de Beery: copiar figuras para estimar una edad</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Procedimiento</h3>
+        <ul class="lista">
+          <li>El niño copia 24 figuras geométricas de dificultad creciente</li>
+          <li>1 punto por figura correcta; se detiene tras 3 errores seguidos</li>
+          <li>El puntaje se convierte en <b>edad equivalente</b> con tablas por sexo</li>
+          <li>“Inferior”: edad equivalente más de 6 meses por debajo de la cronológica</li>
+        </ul>
+        <p class="nota">Se dicotomiza un puntaje continuo, y se pierde información. Las normas son de la 3.ª edición (1967).</p>
+      </div>
+      <div class="panel">
+        <h3>Pruébalo: clasifica a un niño</h3>
+        <div class="fila">
+          <label class="control" for="edadCrono">Edad cronológica (meses)<input type="number" id="edadCrono" min="48" max="119" value="96"></label>
+          <label class="control" for="edadEq">Edad equivalente (meses)<input type="number" id="edadEq" min="24" max="160" value="87"></label>
+        </div>
+        <svg id="beeryBarra" viewBox="0 0 400 60" role="img" aria-label="Diferencia entre edad equivalente y cronológica"></svg>
+        <p id="beeryRes" class="veredicto" aria-live="polite"></p>
+        <p class="chico">Ejemplo: 8 años (96 meses) con edad equivalente de 7 años y 3 meses (87 meses).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 Diseño -->
+<section class="slide" data-titulo="Tipo de diseño">
+  <div class="lienzo">
+    <p class="ceja">Diseño</p>
+    <h2>Los autores lo llaman “analítico-ecológico”. ¿Qué diseño es?</h2>
+    <div class="cols" role="group" aria-label="Opciones de diseño">
+      <button class="opcion" data-diseno="eco">Ecológico</button>
+      <button class="opcion" data-diseno="trans">Transversal analítico</button>
+      <button class="opcion" data-diseno="cc">Casos y controles</button>
+      <button class="opcion" data-diseno="coh">Cohorte</button>
+    </div>
+    <div class="panel" id="disenoRes" aria-live="polite">
+      <p class="chico">Elige una opción para ver la explicación.</p>
+    </div>
+    <div class="cols">
+      <div class="panel"><h3>Unidad de análisis</h3><p>Cada niño (n = 60), no un grupo ni un área.</p></div>
+      <div class="panel"><h3>Tiempo</h3><p>Plomo y Beery medidos en el mismo momento.</p></div>
+      <div class="panel"><h3>Objetivo</h3><p>Buscar una asociación entre exposición y desenlace.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 Análisis -->
+<section class="slide" data-titulo="El análisis">
+  <div class="lienzo">
+    <p class="ceja">Análisis</p>
+    <h2>Se compara el desenlace según la exposición</h2>
+    <div class="fila" role="group" aria-label="Elegir análisis">
+      <button class="btn" data-analisis="ellos" aria-pressed="false">Lo que hicieron ellos</button>
+      <button class="btn" data-analisis="correcto" aria-pressed="true">Lo que correspondía</button>
+    </div>
+    <div class="cols">
+      <div class="panel">
+        <svg id="analisisGraf" viewBox="0 0 420 260" role="img" aria-label="Gráfico del análisis seleccionado"></svg>
+      </div>
+      <div class="panel" id="analisisTexto" aria-live="polite"></div>
+    </div>
+    <div class="tabla-wrap">
+      <table>
+        <tr><th>Pb-S (µg/dL)</th><th style="text-align:right">Beery inferior</th><th style="text-align:right">Total</th><th style="text-align:right">Proporción</th></tr>
+        <tr><td class="exp">≥ 10 (expuestos)</td><td class="n">29</td><td class="n">37</td><td class="n">78 %</td></tr>
+        <tr><td class="noexp">&lt; 10 (no expuestos)</td><td class="n">19</td><td class="n">23</td><td class="n">83 %</td></tr>
+      </table>
+    </div>
+    <details class="guion"><summary>Qué decir</summary><p>Ellos separaron a los niños por el desenlace y compararon el plomo: la lógica invertida. Lo correcto es separar por la exposición y comparar cuánto desenlace hay en cada grupo. La RP de 0,95 con un IC que incluye el 1 dice que no hay asociación en el análisis crudo, pero además dice cuánto: eso es lo que faltó.</p></details>
+  </div>
+</section>
+
+<!-- 8 Más errores -->
+<section class="slide" data-titulo="Dos errores más en los resultados">
+  <div class="lienzo">
+    <p class="ceja">Análisis · Detalles</p>
+    <h2>Dos errores más en los resultados</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>El “P = 0,001” que destacan</h3>
+        <p>Compara la media de plomo entre niños con plomo ≥ 10 (12,3 µg/dL) y &lt; 10 (7,5 µg/dL).</p>
+        <p>Los grupos se definieron por el propio plomo: la diferencia tiene que salir. Recalculado con sus medias da t = 9,5 y p &lt; 0,001, y no dice nada sobre el Beery.</p>
+      </div>
+      <div class="panel">
+        <h3>Sexo: ¿conteos o proporciones?</h3>
+        <p>La discusión dice que los varones están más afectados: “27 varones vs. 21 niñas”.</p>
+        <div class="fila" role="group" aria-label="Elegir forma de comparar">
+          <button class="btn" data-sexo="conteo" aria-pressed="true">Conteos</button>
+          <button class="btn" data-sexo="prop" aria-pressed="false">Proporciones</button>
+        </div>
+        <svg id="sexoGraf" viewBox="0 0 400 150" role="img" aria-label="Beery inferior por sexo"></svg>
+        <p id="sexoRes" class="chico" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 Tamaño muestral -->
+<section class="slide" data-titulo="Tamaño muestral">
+  <div class="lienzo">
+    <p class="ceja">Tamaño muestral</p>
+    <h2>La fórmula depende de la pregunta</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Lo que usaron: estimar una proporción</h3>
+        <p class="num">n₀ = Z²·p(1−p) / d²</p>
+        <p>p = 0,5; d = 10 % → <b class="num">96</b>. Corregido por N = 156 → <b class="num">60</b> niños, justo su muestra.</p>
+        <p class="nota">Responde “¿qué proporción tiene X?”, no “¿difieren dos grupos?”.</p>
+      </div>
+      <div class="panel">
+        <h3>Lo que correspondía: comparar dos proporciones</h3>
+        <label class="control" for="p1Slider">Beery inferior esperado en expuestos: <b id="p1Val"></b>
+          <input type="range" id="p1Slider" min="0.05" max="0.95" step="0.01" value="0.80"></label>
+        <label class="control" for="p0Slider">Beery inferior esperado en no expuestos: <b id="p0Val"></b>
+          <input type="range" id="p0Slider" min="0.05" max="0.95" step="0.01" value="0.60"></label>
+        <label class="control" for="potSlider">Potencia: <b id="potVal"></b>
+          <input type="range" id="potSlider" min="0.5" max="0.95" step="0.05" value="0.80"></label>
+        <label class="fila chico" for="kCheck"><input type="checkbox" id="kCheck"> Grupos desiguales como en el estudio (23 no expuestos por cada 37 expuestos)</label>
+      </div>
+    </div>
+    <div class="panel" aria-live="polite">
+      <div class="fila" style="justify-content: space-between; align-items: flex-end">
+        <p><span class="grande num" id="nTotal">164</span> <span class="chico">niños en total</span></p>
+        <p class="chico" id="nDetalle"></p>
+      </div>
+      <svg id="nGraf" viewBox="0 0 600 70" role="img" aria-label="Tamaño necesario comparado con la muestra y la población"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- 10 Potencia -->
+<section class="slide" data-titulo="Potencia del estudio">
+  <div class="lienzo">
+    <p class="ceja">Potencia</p>
+    <h2>¿Qué podía detectar un estudio con 37 vs. 23 niños?</h2>
+    <div class="cols">
+      <div class="panel">
+        <svg id="potGraf" viewBox="0 0 460 290" role="img" aria-label="Curva de potencia según la razón de prevalencias verdadera"></svg>
+      </div>
+      <div class="panel">
+        <label class="control" for="rpSlider">Si la RP verdadera fuera <b id="rpVal"></b>
+          <input type="range" id="rpSlider" min="0.40" max="1.20" step="0.01" value="0.95"></label>
+        <p><span class="grande num" id="potRes"></span><br><span class="chico">probabilidad de encontrar una diferencia significativa</span></p>
+        <ul class="lista chico">
+          <li>Con 80 % vs. 60 %: potencia de 38 %.</li>
+          <li>Solo llega a 80 % si la RP es ≤ 0,58 (un efecto protector enorme).</li>
+          <li>Para efectos dañinos (RP &gt; 1) nunca llega: los no expuestos ya tienen 83 %.</li>
+        </ul>
+      </div>
+    </div>
+    <details class="guion"><summary>Qué decir</summary><p>Mover el deslizador a 0,95 (lo que observaron): la potencia es del 7 %. Un resultado “no significativo” en un estudio así no permite concluir que no hay asociación.</p></details>
+  </div>
+</section>
+
+<!-- 11 Confusión por edad -->
+<section class="slide" data-titulo="La edad como confusor">
+  <div class="lienzo">
+    <p class="ceja">Confusión</p>
+    <h2>La edad, un confusor sin ajustar</h2>
+    <div class="cols">
+      <div class="panel">
+        <svg id="dag" viewBox="0 0 400 220" role="img" aria-label="Diagrama: la edad influye en el plomo y en el Beery"></svg>
+      </div>
+      <div class="panel">
+        <div class="tabla-wrap">
+          <table>
+            <tr><th>Edad (años)</th><th style="text-align:right">n</th><th style="text-align:right">Pb-S media</th><th style="text-align:right">Beery inferior</th></tr>
+            <tr><td>4 – 5,9</td><td class="n">7</td><td class="n">11,1</td><td class="n">29 %</td></tr>
+            <tr><td>6 – 7,9</td><td class="n">21</td><td class="n">11,2</td><td class="n">71 %</td></tr>
+            <tr><td>8 – 9</td><td class="n">32</td><td class="n">9,8</td><td class="n">97 %</td></tr>
+          </table>
+        </div>
+        <p class="chico">Cuadros 1 y 3. Los mayores tienen <b>menos</b> plomo y <b>más</b> Beery inferior.</p>
+      </div>
+    </div>
+    <p class="nota">Además, que el Beery empeore con la edad es lo contrario de lo esperado. Los propios autores sugieren que la prueba podría ser más difícil para los mayores: parte de esta relación podría ser un problema de medición.</p>
+  </div>
+</section>
+
+<!-- 12 Simulador -->
+<section class="slide" data-titulo="Simulador de confusión">
+  <div class="lienzo">
+    <p class="ceja">Confusión · Simulación</p>
+    <h2>¿Cuánto puede esconder la edad?</h2>
+    <p class="bajada">Con los datos de edad publicados, elige cuánto daño hace realmente el plomo y mira qué RP vería un análisis crudo.</p>
+    <div class="cols">
+      <div class="panel">
+        <label class="control" for="orSlider">Efecto real del plomo dentro de cada edad (OR): <b id="orVal"></b>
+          <input type="range" id="orSlider" min="1" max="5" step="0.1" value="1"></label>
+        <svg id="simGraf" viewBox="0 0 460 170" role="img" aria-label="RP cruda y ajustada esperadas"></svg>
+        <p id="simRes" aria-live="polite"></p>
+      </div>
+      <div class="panel">
+        <h3>Cómo leerlo</h3>
+        <p>Con OR = 1 el plomo no hace nada, pero la RP cruda sale <b class="num">0,92</b>: la edad la empuja hacia abajo cerca de un 8 %.</p>
+        <p>La RP del artículo (0,95) está justo en esa zona.</p>
+        <p class="nota">Datos simulados: supone Pb-S normal dentro de cada edad y el mismo efecto en todas las edades. El artículo no publica la tabla plomo × edad × Beery.</p>
+      </div>
+    </div>
+    <details class="guion"><summary>Qué decir</summary><p>El sesgo por edad es moderado: no borra un efecto grande por sí solo. Pero sumado a la baja potencia, el estudio no podía distinguir “sin efecto” de “efecto moderado escondido”. Faltó estratificar por edad o ajustar con un modelo (Mantel-Haenszel, Poisson robusta, logística).</p></details>
+  </div>
+</section>
+
+<!-- 13 Caso-control -->
+<section class="slide" data-titulo="¿Un caso-control lo resuelve?">
+  <div class="lienzo">
+    <p class="ceja">Recomendación de los autores</p>
+    <h2>¿Un caso-control lo resuelve?</h2>
+    <div class="cols">
+      <div class="panel">
+        <h3>Cuándo sirve</h3>
+        <p>El caso-control elige a las personas según el desenlace y mira hacia atrás su exposición. Es útil cuando el desenlace es <b>raro</b>.</p>
+      </div>
+      <div class="panel">
+        <h3>Aquí</h3>
+        <p><span class="grande num">80 %</span><br><span class="chico">tiene el desenlace. Ya sobran casos.</span></p>
+      </div>
+    </div>
+    <p class="bajada">El problema no era el diseño: era el análisis, el tamaño de muestra y el control de la confusión.</p>
+  </div>
+</section>
+
+<!-- 14 Resumen -->
+<section class="slide" data-titulo="Resumen">
+  <div class="lienzo">
+    <p class="ceja">Resumen</p>
+    <h2>Seis conceptos clave</h2>
+    <div class="cols">
+      <div class="panel"><h3>Diseño</h3><p>Transversal analítico: datos individuales en un solo momento.</p></div>
+      <div class="panel"><h3>Exposición</h3><p>La posible causa: plomo en sangre ≥ 10 µg/dL.</p></div>
+      <div class="panel"><h3>Desenlace</h3><p>El efecto: Beery inferior. No es lo mismo que el resultado.</p></div>
+      <div class="panel"><h3>Medida de asociación</h3><p>RP ≈ 0,95 (IC 0,74–1,22): sin asociación en el análisis crudo.</p></div>
+      <div class="panel"><h3>Confusor</h3><p>La edad se relaciona con ambas variables y no se ajustó.</p></div>
+      <div class="panel"><h3>Tamaño muestral</h3><p>Calculado para estimar (60), no para comparar grupos (164).</p></div>
+    </div>
+    <p class="chico">Todos los números se calcularon en R; el código está en el proyecto <span class="num">PlomoBot</span>.</p>
+  </div>
+</section>
+
+</main>
+
+<nav class="barra" aria-label="Navegación de diapositivas">
+  <button class="nav-btn" id="prev" aria-label="Diapositiva anterior">←</button>
+  <span class="num chico" id="contador">1 / 14</span>
+  <span class="titulo-sec" id="tituloSec"></span>
+  <div class="puntos" id="puntos"></div>
+  <button class="nav-btn" id="next" aria-label="Diapositiva siguiente">→</button>
+</nav>
+
+<script>
+(function () {
+  // ---------- estadística (validada contra R) ----------
+  function erfc(x){const z=Math.abs(x),t=1/(1+0.5*z);const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));return x>=0?r:2-r}
+  const pnorm=x=>0.5*erfc(-x/Math.SQRT2);
+  function qnorm(p){const a=[-39.69683028665376,220.9460984245205,-275.9285104469687,138.357751867269,-30.66479806614716,2.506628277459239],b=[-54.47609879822406,161.5858368580409,-155.6989798598866,66.80131188771972,-13.28068155288572],c=[-0.007784894002430293,-0.3223964580411365,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],d=[0.007784695709041462,0.3224671290700398,2.445134137142996,3.754408661907416],pl=0.02425;let q,r;if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}if(p>1-pl){q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+  const ESh=(a,b)=>2*Math.asin(Math.sqrt(a))-2*Math.asin(Math.sqrt(b));
+  function potencia(h,n1,n2){const k=Math.sqrt(n1*n2/(n1+n2)),z=qnorm(0.975);return pnorm(Math.abs(h)*k-z)+pnorm(-Math.abs(h)*k-z)}
+  function nMuestra(p1,p0,pot,k){const za=qnorm(0.975),zb=qnorm(pot),pb=(p1+k*p0)/(1+k);const n1=Math.pow(za*Math.sqrt((1+1/k)*pb*(1-pb))+zb*Math.sqrt(p1*(1-p1)+p0*(1-p0)/k),2)/Math.pow(p1-p0,2);const a=Math.ceil(n1);return[a,Math.ceil(k*a)]}
+  const logis=x=>1/(1+Math.exp(-x));
+  const EDAD=[{n:7,m:11.1,s:2.4,inf:2},{n:21,m:11.2,s:3.5,inf:15},{n:32,m:9.8,s:2.6,inf:31}];
+  function rpEsperadas(or){let A=0,N1=0,C=0,N0=0,num=0,den=0;for(const g of EDAD){const pe=1-pnorm((10-g.m)/g.s),prev=g.inf/g.n;let lo=-10,hi=10;for(let i=0;i<80;i++){const q=(lo+hi)/2,f=(1-pe)*logis(q)+pe*logis(q+Math.log(or))-prev;if(f>0)hi=q;else lo=q}const b=(lo+hi)/2,p0=logis(b),p1=logis(b+Math.log(or));const a=g.n*pe*p1,c=g.n*(1-pe)*p0,n1=g.n*pe,n0=g.n*(1-pe);A+=a;C+=c;N1+=n1;N0+=n0;num+=a*n0/g.n;den+=c*n1/g.n}return{cruda:(A/N1)/(C/N0),ajustada:num/den}}
+  function wilson(x,n){const z=1.959964,p=x/n,d=1+z*z/n,c=(p+z*z/(2*n))/d,m=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/d;return[c-m,c+m]}
+  const fmt=(x,d=2)=>x.toFixed(d).replace('.',',');
+  const pct=(x,d=0)=>fmt(100*x,d)+' %';
+  const $=id=>document.getElementById(id);
+  const NS='http://www.w3.org/2000/svg';
+  function el(tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e}
+  function limpiar(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);return svg}
+
+  // ---------- navegación ----------
+  const slides=[...document.querySelectorAll('.slide')];
+  const puntos=$('puntos');
+  slides.forEach((s,i)=>{s.id='s'+(i+1);const b=document.createElement('button');b.className='punto';b.setAttribute('aria-label','Ir a la diapositiva '+(i+1)+': '+s.dataset.titulo);b.addEventListener('click',()=>ir(i));puntos.appendChild(b)});
+  let actual=0;
+  function ir(i){
+    actual=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach((s,j)=>s.classList.toggle('activa',j===actual));
+    [...puntos.children].forEach((p,j)=>p.classList.toggle('activo',j===actual));
+    $('contador').textContent=(actual+1)+' / '+slides.length;
+    $('tituloSec').textContent=slides[actual].dataset.titulo;
+    $('prev').disabled=actual===0;$('next').disabled=actual===slides.length-1;
+    slides[actual].scrollTop=0;
+    try{history.replaceState(null,'','#s'+(actual+1))}catch(e){}
+  }
+  $('prev').addEventListener('click',()=>ir(actual-1));
+  $('next').addEventListener('click',()=>ir(actual+1));
+  document.addEventListener('keydown',e=>{
+    const t=e.target;if(t&&(t.tagName==='INPUT'))return;
+    if(e.key==='ArrowRight'||e.key==='PageDown'){ir(actual+1);e.preventDefault()}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ir(actual-1);e.preventDefault()}
+    else if(e.key==='Home'){ir(0)}else if(e.key==='End'){ir(slides.length-1)}
+  });
+  const m=/^#s(\d+)$/.exec(location.hash||'');
+  ir(m?parseInt(m[1],10)-1:0);
+
+  // ---------- 3: frase ----------
+  document.querySelectorAll('[data-frase]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-frase]').forEach(x=>x.classList.remove('ok','mal'));
+    const bien=b.dataset.frase==='bien';b.classList.add(bien?'ok':'mal');
+    $('fraseRes').textContent=bien?'Correcto: X = plomo (exposición), Y = alteración visomanual (desenlace).':'Al revés: el plomo es la posible causa, así que va en el lugar de X.';
+  }));
+
+  // ---------- 4: regla de plomo ----------
+  function regla(){
+    const v=parseFloat($('pbSlider').value),svg=limpiar($('pbRegla')),x=t=>20+t*18;
+    $('pbVal').textContent=fmt(v,1)+' µg/dL';
+    svg.appendChild(el('rect',{x:20,y:24,width:360,height:14,rx:7,style:'fill:var(--tint)'}));
+    svg.appendChild(el('rect',{x:x(10),y:24,width:360-x(10)+20,height:14,rx:7,style:'fill:var(--exp);opacity:.35'}));
+    [[3.5,'3,5 (CDC 2021)'],[10,'10 (CDC 1991)']].forEach(([c,t],i)=>{svg.appendChild(el('line',{x1:x(c),x2:x(c),y1:18,y2:44,style:'stroke:var(--ink);stroke-width:2'}));svg.appendChild(el('text',{x:x(c),y:i?14:60,'text-anchor':'middle'},t))});
+    svg.appendChild(el('circle',{cx:x(v),cy:31,r:9,style:'fill:'+(v>=10?'var(--exp)':'var(--noexp)')+';stroke:var(--surface);stroke-width:2'}));
+    svg.appendChild(el('text',{x:20,y:60},'0'));svg.appendChild(el('text',{x:380,y:60,'text-anchor':'end'},'20'));
+    const cl=$('pbClase');cl.textContent=v>=10?'Expuesto (≥ 10 µg/dL)':'No expuesto (< 10 µg/dL)';cl.style.color=v>=10?'var(--exp)':'var(--noexp)';
+  }
+  $('pbSlider').addEventListener('input',regla);regla();
+
+  // ---------- 5: Beery ----------
+  function beery(){
+    const c=parseFloat($('edadCrono').value),q=parseFloat($('edadEq').value),svg=limpiar($('beeryBarra')),r=$('beeryRes');
+    if(!isFinite(c)||!isFinite(q)){r.textContent='Escribe las dos edades en meses.';r.style.color='var(--muted)';return}
+    const d=q-c,inf=d< -6,x=v=>200+Math.max(-24,Math.min(24,v))*7.5;
+    svg.appendChild(el('rect',{x:x(-24),y:18,width:x(-6)-x(-24),height:16,style:'fill:var(--bad);opacity:.25'}));
+    svg.appendChild(el('rect',{x:x(-6),y:18,width:x(24)-x(-6),height:16,style:'fill:var(--good);opacity:.2'}));
+    svg.appendChild(el('line',{x1:x(-6),x2:x(-6),y1:12,y2:40,style:'stroke:var(--ink);stroke-width:2'}));
+    svg.appendChild(el('text',{x:x(-6),y:54,'text-anchor':'middle'},'−6 meses'));
+    svg.appendChild(el('text',{x:x(0),y:54,'text-anchor':'middle'},'0'));
+    svg.appendChild(el('circle',{cx:x(d),cy:26,r:8,style:'fill:var(--ink)'}));
+    r.textContent=(d>=0?'+':'−')+Math.abs(d)+' meses respecto a su edad → '+(inf?'“Inferior”':'Normal');
+    r.style.color=inf?'var(--bad)':'var(--good)';
+  }
+  ['edadCrono','edadEq'].forEach(id=>$(id).addEventListener('input',beery));beery();
+
+  // ---------- 6: diseño ----------
+  const DIS={
+    eco:[false,'No. En un ecológico la unidad de análisis es el grupo o el área (por ejemplo, el promedio de plomo de un barrio), no la persona. Aquí hay datos de cada niño.'],
+    trans:[true,'Correcto: transversal analítico. Datos individuales, exposición y desenlace medidos en el mismo momento, y se busca una asociación.'],
+    cc:[false,'No. Los niños no se eligieron por tener o no Beery inferior; se eligieron al azar entre los 156 de los colegios.'],
+    coh:[false,'No. No hubo seguimiento en el tiempo: plomo y Beery se midieron a la vez.']
+  };
+  document.querySelectorAll('[data-diseno]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-diseno]').forEach(x=>x.classList.remove('ok','mal'));
+    const [ok,txt]=DIS[b.dataset.diseno];b.classList.add(ok?'ok':'mal');
+    const p=$('disenoRes');p.innerHTML='';const t=document.createElement('p');t.className='veredicto';t.textContent=txt;t.style.color=ok?'var(--good)':'var(--bad)';p.appendChild(t);
+  }));
+
+  // ---------- 7: análisis ----------
+  function barras(svg,datos,max,fmtV,conError){
+    const W=420,H=260,izq=60,abajo=210,alto=170,ancho=90;
+    for(let i=0;i<=4;i++){const v=max*i/4,y=abajo-alto*i/4;svg.appendChild(el('line',{x1:izq,x2:W-10,y1:y,y2:y,style:'stroke:var(--line)'}));svg.appendChild(el('text',{x:izq-8,y:y+4,'text-anchor':'end'},fmtV(v)))}
+    datos.forEach((d,i)=>{const x=izq+40+i*150,h=alto*d.v/max;
+      svg.appendChild(el('rect',{x:x,y:abajo-h,width:ancho,height:h,rx:3,style:'fill:'+d.color}));
+      if(conError){const y1=abajo-alto*d.lo/max,y2=abajo-alto*d.hi/max,cx=x+ancho/2;svg.appendChild(el('line',{x1:cx,x2:cx,y1:y1,y2:y2,style:'stroke:var(--ink);stroke-width:2'}));[y1,y2].forEach(y=>svg.appendChild(el('line',{x1:cx-10,x2:cx+10,y1:y,y2:y,style:'stroke:var(--ink);stroke-width:2'})))}
+      svg.appendChild(el('text',{x:x+ancho/2,y:abajo+20,'text-anchor':'middle',class:'etq'},d.nombre));
+      svg.appendChild(el('text',{x:x+ancho/2,y:abajo+38,'text-anchor':'middle'},d.etq));
+    });
+  }
+  function analisis(modo){
+    document.querySelectorAll('[data-analisis]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.analisis===modo)));
+    const svg=limpiar($('analisisGraf')),t=$('analisisTexto');t.innerHTML='';
+    const add=(tag,txt,cls)=>{const e=document.createElement(tag);e.textContent=txt;if(cls)e.className=cls;t.appendChild(e);return e};
+    if(modo==='ellos'){
+      barras(svg,[{nombre:'Beery inferior',etq:'n = 48',v:10.54,lo:10.54-3,hi:10.54+3,color:'var(--lead)'},{nombre:'Beery normal',etq:'n = 12',v:10.3,lo:10.3-2.9,hi:10.3+2.9,color:'var(--lead)'}],16,v=>fmt(v,0),true);
+      svg.appendChild(el('text',{x:60,y:20},'Pb-S media ± DE (µg/dL)'));
+      add('h3','Media de plomo según el Beery');
+      add('p','Separaron a los niños por el desenlace y compararon la exposición con una t de Student: la lógica al revés.');
+      add('p','Recalculado con sus medias: t = 0,25; p = 0,80 (reportan 0,834).','num');
+      add('p','No da ninguna medida de cuánto se asocian las variables.','nota');
+    }else{
+      const a=wilson(29,37),b=wilson(19,23);
+      barras(svg,[{nombre:'Pb-S ≥ 10',etq:'29 / 37',v:29/37,lo:a[0],hi:a[1],color:'var(--exp)'},{nombre:'Pb-S < 10',etq:'19 / 23',v:19/23,lo:b[0],hi:b[1],color:'var(--noexp)'}],1,v=>pct(v),true);
+      svg.appendChild(el('text',{x:60,y:20},'Beery inferior (IC 95 %)'));
+      add('h3','Prevalencia del desenlace según la exposición');
+      add('p','Razón de prevalencias = 78 % ÷ 83 %');
+      const g=add('p','RP = 0,95','grande num');g.style.color='var(--ink)';
+      add('p','IC 95 %: 0,74 – 1,22 · Fisher p = 0,75','num');
+      add('p','Un valor de 1 significa sin asociación, y el intervalo lo incluye. La OR (0,76) exagera porque el desenlace es muy frecuente.','nota');
+    }
+  }
+  document.querySelectorAll('[data-analisis]').forEach(b=>b.addEventListener('click',()=>analisis(b.dataset.analisis)));
+  analisis('correcto');
+
+  // ---------- 8: sexo ----------
+  function sexo(modo){
+    document.querySelectorAll('[data-sexo]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sexo===modo)));
+    const svg=limpiar($('sexoGraf')),datos=[['Varones',27,35],['Niñas',21,25]],prop=modo==='prop';
+    const max=prop?1:35;
+    datos.forEach(([n,x,t],i)=>{const y=20+i*60,v=prop?x/t:x,w=270*v/max;
+      svg.appendChild(el('text',{x:0,y:y+22,class:'etq'},n));
+      svg.appendChild(el('rect',{x:80,y:y,width:270,height:32,rx:3,style:'fill:var(--tint)'}));
+      svg.appendChild(el('rect',{x:80,y:y,width:w,height:32,rx:3,style:'fill:var(--lead)'}));
+      svg.appendChild(el('text',{x:86+w,y:y+22,class:'etq'},prop?pct(v,0):x+' de '+t));
+    });
+    $('sexoRes').textContent=prop?'En proporciones es al revés: 77 % en varones vs. 84 % en niñas (RP = 0,92; Fisher p = 0,74). Sin diferencia.':'Parece que los varones están más afectados, pero había más varones (35 vs. 25).';
+  }
+  document.querySelectorAll('[data-sexo]').forEach(b=>b.addEventListener('click',()=>sexo(b.dataset.sexo)));
+  sexo('conteo');
+
+  // ---------- 9: tamaño muestral ----------
+  function tamano(){
+    const p1=parseFloat($('p1Slider').value),p0=parseFloat($('p0Slider').value),pot=parseFloat($('potSlider').value),k=$('kCheck').checked?23/37:1;
+    $('p1Val').textContent=pct(p1);$('p0Val').textContent=pct(p0);$('potVal').textContent=pct(pot);
+    const svg=limpiar($('nGraf'));
+    if(Math.abs(p1-p0)<0.005){$('nTotal').textContent='—';$('nDetalle').textContent='Con proporciones iguales no hay diferencia que detectar.';return}
+    const [a,b]=nMuestra(p1,p0,pot,k),tot=a+b,rp=p1/p0;
+    $('nTotal').textContent=tot.toLocaleString('es');
+    $('nDetalle').textContent=a+' expuestos + '+b+' no expuestos · RP = '+fmt(rp);
+    const max=Math.max(tot,170)*1.05,x=v=>10+580*Math.min(v,max)/max;
+    svg.appendChild(el('rect',{x:10,y:14,width:x(tot)-10,height:20,rx:3,style:'fill:'+(tot>156?'var(--bad)':'var(--good)')}));
+    [[60,'muestra: 60'],[156,'población: 156']].forEach(([v,t],i)=>{svg.appendChild(el('line',{x1:x(v),x2:x(v),y1:6,y2:44,style:'stroke:var(--ink);stroke-width:2;stroke-dasharray:'+(i?'0':'4 3')}));svg.appendChild(el('text',{x:x(v),y:60,'text-anchor':i?'end':'start'},t))});
+  }
+  ['p1Slider','p0Slider','potSlider','kCheck'].forEach(id=>$(id).addEventListener('input',tamano));tamano();
+
+  // ---------- 10: potencia ----------
+  const P0=19/23;
+  function curvaPot(){
+    const rp=parseFloat($('rpSlider').value),svg=limpiar($('potGraf'));
+    const izq=48,der=450,arr=16,abj=250,X=v=>izq+(v-0.4)/0.8*(der-izq),Y=v=>abj-v*(abj-arr);
+    for(let i=0;i<=4;i++){const v=i/4;svg.appendChild(el('line',{x1:izq,x2:der,y1:Y(v),y2:Y(v),style:'stroke:var(--line)'}));svg.appendChild(el('text',{x:izq-6,y:Y(v)+4,'text-anchor':'end'},(v*100)+'%'))}
+    [0.4,0.6,0.8,1,1.2].forEach(v=>svg.appendChild(el('text',{x:X(v),y:abj+18,'text-anchor':'middle'},fmt(v,1))));
+    svg.appendChild(el('text',{x:(izq+der)/2,y:abj+36,'text-anchor':'middle'},'RP verdadera'));
+    svg.appendChild(el('line',{x1:izq,x2:der,y1:Y(0.8),y2:Y(0.8),style:'stroke:var(--ink);stroke-dasharray:5 4'}));
+    svg.appendChild(el('line',{x1:X(1),x2:X(1),y1:arr,y2:abj,style:'stroke:var(--lead)'}));
+    let d='';for(let v=0.4;v<=1.2001;v+=0.005){if(v*P0>=0.999)break;const p=potencia(ESh(v*P0,P0),37,23);d+=(d?'L':'M')+X(v).toFixed(1)+' '+Y(p).toFixed(1)}
+    svg.appendChild(el('path',{d:d,style:'fill:none;stroke:var(--accent);stroke-width:3'}));
+    const pr=Math.min(rp*P0,0.999),p=potencia(ESh(pr,P0),37,23);
+    svg.appendChild(el('circle',{cx:X(rp),cy:Y(p),r:7,style:'fill:var(--exp);stroke:var(--surface);stroke-width:2'}));
+    $('rpVal').textContent=fmt(rp);$('potRes').textContent=pct(p);
+  }
+  $('rpSlider').addEventListener('input',curvaPot);curvaPot();
+
+  // ---------- 11: DAG ----------
+  (function(){const svg=$('dag');
+    svg.appendChild(el('defs',{})).appendChild((()=>{const mk=el('marker',{id:'flecha',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'});mk.appendChild(el('path',{d:'M0 0 L10 5 L0 10 z',style:'fill:var(--ink)'}));return mk})());
+    const nodo=(x,y,t,c)=>{svg.appendChild(el('rect',{x:x-62,y:y-20,width:124,height:40,rx:6,style:'fill:var(--surface);stroke:'+c+';stroke-width:2'}));svg.appendChild(el('text',{x:x,y:y+5,'text-anchor':'middle',class:'etq'},t))};
+    const fl=(x1,y1,x2,y2,dash)=>svg.appendChild(el('line',{x1,y1,x2,y2,'marker-end':'url(#flecha)',style:'stroke:var(--ink);stroke-width:2'+(dash?';stroke-dasharray:6 5':'')}));
+    fl(180,62,90,150);fl(220,62,310,150);fl(142,172,252,172,true);
+    nodo(200,42,'Edad','var(--lead)');nodo(76,172,'Plomo','var(--exp)');nodo(324,172,'Beery inferior','var(--noexp)');
+    svg.appendChild(el('text',{x:110,y:100,'text-anchor':'end'},'mayores: menos Pb'));
+    svg.appendChild(el('text',{x:290,y:100},'mayores: más inferior'));
+    svg.appendChild(el('text',{x:200,y:208,'text-anchor':'middle'},'¿efecto?'));
+  })();
+
+  // ---------- 12: simulador ----------
+  function simular(){
+    const or=parseFloat($('orSlider').value),r=rpEsperadas(or),svg=limpiar($('simGraf'));
+    $('orVal').textContent=fmt(or,1);
+    const izq=150,der=450,X=v=>izq+(v-0.8)/0.6*(der-izq);
+    [0.8,0.9,1,1.1,1.2,1.3,1.4].forEach(v=>{svg.appendChild(el('line',{x1:X(v),x2:X(v),y1:10,y2:120,style:'stroke:var(--line)'}));svg.appendChild(el('text',{x:X(v),y:138,'text-anchor':'middle'},fmt(v,1)))});
+    svg.appendChild(el('line',{x1:X(1),x2:X(1),y1:10,y2:120,style:'stroke:var(--ink);stroke-dasharray:5 4'}));
+    svg.appendChild(el('line',{x1:X(0.95),x2:X(0.95),y1:10,y2:120,style:'stroke:var(--bad);stroke-width:2'}));
+    svg.appendChild(el('text',{x:X(0.95),y:160,'text-anchor':'middle',style:'fill:var(--bad)'},'artículo: 0,95'));
+    [['RP cruda',r.cruda,'var(--lead)',40],['RP ajustada',r.ajustada,'var(--accent)',90]].forEach(([t,v,c,y])=>{
+      svg.appendChild(el('text',{x:0,y:y+5,class:'etq'},t));
+      svg.appendChild(el('line',{x1:X(1),x2:X(Math.min(v,1.4)),y1:y,y2:y,style:'stroke:'+c+';stroke-width:6;stroke-linecap:round'}));
+      svg.appendChild(el('circle',{cx:X(Math.min(v,1.4)),cy:y,r:8,style:'fill:'+c}));
+      svg.appendChild(el('text',{x:izq-10,y:y+5,'text-anchor':'end'},fmt(v)));
+    });
+    $('simRes').textContent=or<=1.001?'Sin efecto real, la RP cruda igual sale por debajo de 1: eso es puro sesgo por edad.':'Efecto real: RP ajustada '+fmt(r.ajustada)+', pero el análisis crudo solo ve '+fmt(r.cruda)+'.';
+  }
+  $('orSlider').addEventListener('input',simular);simular();
+})();
+</script>

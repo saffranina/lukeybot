@@ -1,0 +1,176 @@
+---
+title: "Plomo en sangre y coordinación visomanual en niños"
+subtitle: "PlomoBot · Reanálisis en R para la lectura crítica del artículo"
+author: "Tu nombre"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    code-fold: show
+    embed-resources: true
+  docx:
+    toc: true
+  typst:
+    toc: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| include: false
+# Números con coma decimal en el texto
+num <- function(x, d = 2) formatC(unname(x), format = "f", digits = d, decimal.mark = ",")
+```
+
+**Artículo:** Squillante G, Rojas M, Medina E, et al. *Gac Méd Caracas*. 2005;113(1):50-57.
+
+Este reporte usa R para comprobar con números cuatro puntos de la lectura crítica:
+la medida de asociación que faltó, el tamaño muestral, la potencia del estudio
+y el papel de la edad como confusor.
+
+# Datos publicados
+
+La exposición es el plomo en sangre (Pb-S ≥ 10 vs. < 10 µg/dL) y el desenlace es
+un resultado inferior en el test de Beery (más de 6 meses por debajo de la edad
+cronológica). Los datos salen de los Cuadros 1 a 4 del artículo.
+
+```{r}
+#| file: R/01_datos.R
+```
+
+# Parte 1. El análisis que correspondía
+
+Los autores compararon la **media de plomo** entre los grupos de Beery con una
+t de Student. Es decir, trataron el desenlace como si fuera la causa. En un
+estudio transversal analítico lo que corresponde es comparar la **prevalencia del
+desenlace según la exposición** y reportar una medida de asociación con su
+intervalo de confianza.
+
+```{r}
+#| file: R/02_asociacion.R
+```
+
+**Lo que hicieron los autores, reproducido.** Con las medias, DE y n del
+Cuadro 2, la t de Student de Pb-S entre los grupos de Beery da
+p = `r num(t_beery["p"])` (reportan 0,834; la diferencia viene del redondeo de
+las DE). La diferencia de Pb-S por sexo da p = `r num(t_sexo["p"], 3)`, igual a
+la publicada. El "P = 0,001" que destacan compara la media de Pb-S entre niños
+con Pb-S ≥ 10 y < 10. Como los grupos se definen por el propio plomo, la
+diferencia es obligatoria y no dice nada sobre el Beery.
+
+**Interpretación.** La razón de prevalencias es
+RP = `r num(rp$est)` (IC 95 %: `r num(rp$lower)`–`r num(rp$upper)`).
+El intervalo incluye el 1, y la prueba exacta de Fisher da
+p = `r num(prueba_fisher$p.value)`. En el análisis crudo no hay
+asociación entre el plomo y el Beery inferior. La razón de odds
+(OR = `r num(or$est)`) se aleja más del 1 que la RP porque el desenlace es
+muy frecuente (80 %). En ese caso la OR exagera la magnitud del efecto y es
+preferible reportar la RP.
+
+**Sexo.** En la discusión, los autores dicen que los varones tienen más Beery
+inferior porque son 27 contra 21 niñas. Pero comparan conteos, y había más
+varones (35 vs. 25). En proporciones es al revés:
+`r paste(num(100 * prop_sexo[1], 1), "%")` en varones vs.
+`r paste(num(100 * prop_sexo[2], 1), "%")` en niñas
+(RP = `r num(rp_sexo)`; Fisher p = `r num(fisher_sexo$p.value)`).
+
+# Parte 2. Tamaño muestral y potencia
+
+Los autores usaron la fórmula para **estimar una proporción**, pero su pregunta
+exigía **comparar dos proporciones**.
+
+```{r}
+#| file: R/03_tamano_muestral.R
+```
+
+**Interpretación.**
+
+- Con su fórmula se llega a `r n_autores` niños, exactamente su muestra, así
+  que casi seguro fue la que usaron. Esa fórmula responde "¿qué proporción de
+  niños tiene X?", no "¿difieren dos grupos?".
+- Para detectar 80 % de Beery inferior en expuestos vs. 60 % en no expuestos
+  (RP ≈ 1,33; α = 0,05; potencia 80 %) hacían falta `r n_grupo` por grupo
+  (`r 2 * n_grupo` en total), más que los 156 niños disponibles.
+- Con grupos desiguales como los del estudio (23 no expuestos por cada
+  37 expuestos) se necesitan todavía más: `r n_exp_k` expuestos y
+  `r n_noexp_k` no expuestos (`r n_exp_k + n_noexp_k` en total).
+- Con 37 expuestos y 23 no expuestos, la potencia para detectar una diferencia
+  de 80 % vs. 60 % era de solo `r paste(num(100 * potencia_escenario, 0), "%")`.
+  Para la diferencia que observaron (78 % vs. 83 %) era de
+  `r paste(num(100 * potencia_observada, 0), "%")`.
+- Si hubieran usado el puntaje continuo del Beery en vez de dicotomizarlo,
+  para detectar una diferencia moderada (d de Cohen = `r num(d_cohen, 1)`)
+  bastaban `r n_grupo_continuo` niños por grupo, menos que los `r n_grupo`
+  que exige la comparación de proporciones. Dicotomizar pierde información y
+  potencia. El artículo no reporta la DE del puntaje, así que este cálculo se
+  expresa en unidades de DE.
+- El estudio solo alcanzaba un 80 % de potencia para efectos protectores muy
+  grandes (RP ≤ `r num(rp_detectable_menor)`). Para cualquier efecto
+  dañino (RP > 1) la potencia nunca llega al 80 %, porque la prevalencia en los no
+  expuestos ya es del 83 % y no hay margen para subir. Que el resultado "no sea
+  significativo" dice poco: el estudio casi no podía encontrar nada.
+
+# Parte 3. La edad como confusor (simulación)
+
+::: {.callout-warning}
+## Datos simulados
+
+El artículo publica el plomo por edad (Cuadro 1) y el Beery por edad
+(Cuadro 3), pero no la tabla cruzada plomo × edad × Beery. Por eso esta parte
+**no reanaliza los datos individuales**. Se simula una población con los
+números de esos cuadros, suponiendo que el Pb-S es normal dentro de cada edad
+y que el efecto del plomo es el mismo en todas las edades.
+:::
+
+La edad cumple las condiciones de un confusor. Se asocia con la exposición:
+el Pb-S medio es 11,1 y 11,2 µg/dL en los menores y 9,8 µg/dL en los de 8–9 años
+(Cuadro 1). También se asocia con el desenlace: el Beery inferior sube de 29 %
+en 4–5 años a 71 % en 6–7 y 97 % en 8–9 (Cuadro 3). Y no es consecuencia del plomo.
+
+```{r}
+#| file: R/04_simulacion_edad.R
+```
+
+**Interpretación.**
+
+- **Sesgo esperado por la edad.** Si el plomo no tuviera ningún efecto, con la
+  distribución de edad y plomo publicada la RP cruda esperada sería
+  `r num(sesgo_edad$cruda[1])` y no 1. La edad empuja la RP cruda hacia abajo
+  alrededor de un `r paste(num(100 * (1 - sesgo_edad$cruda[1]), 0), "%")`. La RP del
+  artículo (0,95) está muy cerca de lo que se esperaría sin efecto.
+- **Un efecto real quedaría escondido.** Con un efecto verdadero del plomo
+  (OR = `r num(or_verdadero, 1)` dentro de cada edad), la RP ajustada esperada es
+  `r num(esperado["ajustada"])`, pero la cruda es solo
+  `r num(esperado["cruda"])`. En los `r nrow(repeticiones)` estudios simulados de
+  60 niños, la RP cruda quedó por debajo de 1 en el
+  `r paste(num(100 * resumen_rep$pct_menor_1[1], 0), "%")` de los casos, aunque el
+  plomo era dañino.
+- **Magnitud.** Con estos datos el sesgo por edad es moderado. Por sí solo no
+  convierte un efecto grande en nulo, pero sumado a la baja potencia (Parte 2)
+  deja al estudio sin capacidad de distinguir "no hay efecto" de "hay un efecto
+  pequeño o moderado enmascarado por la edad". Hacía falta estratificar por edad
+  o ajustar con un modelo (Mantel-Haenszel, Poisson robusta o regresión logística).
+
+Hay además una duda sobre la medición. Que el Beery inferior aumente con la edad
+es lo contrario de lo esperado, y los propios autores sugieren que la prueba
+podría ser proporcionalmente más difícil para los mayores. Si las normas del
+test (edición de 1967) no clasifican igual a todas las edades, la relación entre
+edad y desenlace sería en parte un artefacto de la medición.
+
+# Conclusiones
+
+| Aspecto | Lo que hicieron | Lo que correspondía |
+|---|---|---|
+| Diseño | "Analítico-ecológico" | Transversal analítico (datos individuales) |
+| Análisis | t de Student sobre la media de plomo | RP con IC 95 % (desenlace según exposición) |
+| P = 0,001 destacado | Pb-S ≥ 10 vs. < 10 (circular) | No informa sobre el desenlace |
+| Sexo | "27 varones vs. 21 niñas" (conteos) | Proporciones: 77 % vs. 84 %, sin diferencia |
+| Resultado | Sin medida de asociación | RP ≈ 0,95, IC incluye el 1 |
+| Tamaño muestral | Fórmula para estimar una proporción (60) | Fórmula para comparar proporciones (164; 169 con grupos desiguales) |
+| Confusión | Edad sin ajustar (sesgo esperado ≈ 8 %) | Estratificar por edad o regresión ajustada |
+
+El problema principal del estudio no fue el diseño, sino el análisis y el control
+de la confusión. Un diseño de casos y controles no lo resolvía, porque el
+desenlace no es raro (80 %).
