@@ -17,9 +17,9 @@ Proyecto de R para la lectura crítica del artículo:
 | `R/03_tamano_muestral.R` | **Parte 2:** tamaño muestral (el de los autores vs. el correcto), potencia real y curva de potencia |
 | `R/04_simulacion_edad.R` | **Parte 3:** DAG y simulación de la confusión por edad (datos **simulados**) |
 | `reporte.qmd` | **Parte 4:** reporte Quarto que junta todo con texto, código y gráficos |
-| `presentacion.html` | Presentación interactiva para la clase (se abre en el navegador; ← → para avanzar) |
-| `R/05_generar_sitio.R` | Genera el sitio web en `docs/` (presentación + reporte) |
-| `docs/` | Sitio publicado con GitHub Pages |
+| `fuente/presentacion.html` | Fuente de la presentación interactiva |
+| `R/05_generar_sitio.R` | Genera el sitio web: `presentacion.html` y `reporte.html` |
+| `index.html`, `presentacion.html`, `reporte.html` | Sitio publicado con GitHub Pages |
 
 ## Cómo usarlo
 
@@ -36,9 +36,12 @@ de RStudio ya lo traen instalado.
 
 ## Sitio web (GitHub Pages)
 
-La carpeta `docs/` tiene la portada (`index.html`), la presentación
-(`presentacion.html`) y el reporte (`reporte.html`). Si cambias alguno, corre `R/05_generar_sitio.R` y haz commit
-de `docs/`.
+El sitio se publica desde la raíz del repo: la portada (`index.html`), la
+presentación (`presentacion.html`) y el reporte (`reporte.html`). Si cambias la
+presentación (edita `fuente/presentacion.html`) o el reporte, corre
+`R/05_generar_sitio.R` y haz commit de los HTML.
+
+Sitio: https://saffranina.github.io/lukeybot/
 
 ## Sobre la simulación
 

@@ -1,15 +1,15 @@
-# Genera el sitio de GitHub Pages en docs/ ---------------------------------
+# Genera el sitio de GitHub Pages en la raíz del repo -----------------------
 # Correr desde la raíz del proyecto después de cambiar la presentación o el
-# reporte. Luego hacer commit y push de la carpeta docs/.
+# reporte. Luego hacer commit y push de index.html, presentacion.html y
+# reporte.html.
 #
-#   docs/index.html        = portada con los dos botones (se edita a mano)
-#   docs/presentacion.html = presentación interactiva
-#   docs/reporte.html = reporte Quarto con el código de R
+#   index.html        = portada con los dos botones (se edita a mano)
+#   presentacion.html = presentación interactiva (se genera desde
+#                       fuente/presentacion.html, que no trae <head>)
+#   reporte.html      = reporte Quarto con el código de R
 
-dir.create("docs", showWarnings = FALSE)
-
-# presentacion.html no trae <html>/<head> propios; aquí se le agregan
-cuerpo <- readLines("presentacion.html", encoding = "UTF-8")
+# fuente/presentacion.html no trae <html>/<head> propios; aquí se le agregan
+cuerpo <- readLines("fuente/presentacion.html", encoding = "UTF-8")
 writeLines(
   c("<!doctype html>",
     "<html lang=\"es\">",
@@ -22,12 +22,11 @@ writeLines(
     cuerpo,
     "</body>",
     "</html>"),
-  "docs/presentacion.html", useBytes = TRUE
+  "presentacion.html", useBytes = TRUE
 )
 
-# Reporte: se renderiza a HTML autocontenido y se copia a docs/
+# Reporte: se renderiza a reporte.html, autocontenido
 system2("quarto", c("render", "reporte.qmd", "--to", "html"))
-file.copy("reporte.html", "docs/reporte.html", overwrite = TRUE)
 
-# Sin esto, GitHub Pages procesa la carpeta con Jekyll
-file.create("docs/.nojekyll")
+# Sin esto, GitHub Pages procesa el repo con Jekyll y muestra el README
+file.create(".nojekyll")
