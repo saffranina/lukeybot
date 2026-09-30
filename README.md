@@ -36,8 +36,8 @@ de RStudio ya lo traen instalado.
 
 ## Sitio web (GitHub Pages)
 
-La carpeta `docs/` tiene la presentación (`index.html`) y el reporte
-(`reporte.html`). Si cambias alguno, corre `R/05_generar_sitio.R` y haz commit
+La carpeta `docs/` tiene la portada (`index.html`), la presentación
+(`presentacion.html`) y el reporte (`reporte.html`). Si cambias alguno, corre `R/05_generar_sitio.R` y haz commit
 de `docs/`.
 
 ## Sobre la simulación

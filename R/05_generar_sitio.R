@@ -2,7 +2,8 @@
 # Correr desde la raíz del proyecto después de cambiar la presentación o el
 # reporte. Luego hacer commit y push de la carpeta docs/.
 #
-#   docs/index.html   = presentación interactiva
+#   docs/index.html        = portada con los dos botones (se edita a mano)
+#   docs/presentacion.html = presentación interactiva
 #   docs/reporte.html = reporte Quarto con el código de R
 
 dir.create("docs", showWarnings = FALSE)
@@ -21,7 +22,7 @@ writeLines(
     cuerpo,
     "</body>",
     "</html>"),
-  "docs/index.html", useBytes = TRUE
+  "docs/presentacion.html", useBytes = TRUE
 )
 
 # Reporte: se renderiza a HTML autocontenido y se copia a docs/
