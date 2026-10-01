@@ -123,9 +123,13 @@ svg text { font-family: var(--mono); font-size: 13px; fill: var(--muted); }
 svg .etq { fill: var(--ink); font-weight: 600; }
 
 /* Notas del presentador */
-details.guion { font-size: 15px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
-details.guion summary { cursor: pointer; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
-details.guion p { margin-top: 6px; max-width: 75ch; }
+details.guion { font-size: 17px; border-top: 1px dashed var(--line); padding-top: 10px; }
+details.guion summary { cursor: pointer; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+details.guion[open] { background: var(--tint); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px 16px; }
+details.guion p { margin-top: 10px; max-width: 75ch; }
+details.guion .g-di { border-left: 3px solid var(--accent); padding-left: 10px; }
+details.guion .g-ana { border-left: 3px solid var(--exp); padding-left: 10px; }
+details.guion .g-tip, details.guion .g-preg { color: var(--muted); }
 
 /* Barra de navegación */
 .barra {
@@ -161,6 +165,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
     <h1>Plomo en sangre y coordinación visomanual en niños</h1>
     <p class="cita">Squillante G, Rojas M, Medina E, Seijas D, Terán de Rojas O. <i>Gac Méd Caracas</i>. 2005;113(1):50-57.</p>
     <p class="chico">Usa ← → o los botones de abajo para avanzar. Las diapositivas con controles se pueden manipular en vivo.</p>
+    <details class="guion"><summary>Qué decir</summary><p class="g-di"><b>Di:</b> “Vamos a hacer la lectura crítica de un estudio venezolano de 2005 que buscó si el plomo en la sangre de los niños afecta su coordinación entre la vista y la mano.”</p><p class="g-tip"><b>Tip:</b> La casilla “Pb 82” es el plomo en la tabla periódica. Puedes abrir este guion en cada diapositiva con el botón “Guion” de abajo o la tecla G.</p></details>
   </div>
 </section>
 
@@ -190,7 +195,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       </div>
     </div>
     <p class="nota">Conclusión de los autores: no hay diferencia significativa en el plomo entre niños con Beery inferior y normal (P = 0,834). Recomiendan un estudio de casos y controles.</p>
-    <details class="guion"><summary>Qué decir</summary><p>Presentar la pregunta en una frase. Remarcar que la zona ya se sabía contaminada y que el 80 % de Beery inferior es altísimo: vamos a ver si el análisis permitía responder la pregunta.</p></details>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Contar el estudio en 30 segundos: quiénes, qué midieron y qué encontraron.</p><p class="g-di"><b>Di:</b> “Estudiaron a 60 niños de 4 a 9 años de una zona de Valencia que ya se sabía contaminada con plomo. Les midieron el plomo en sangre y les hicieron un test de coordinación. Más de la mitad tenía plomo alto, y el 80 % salió mal en el test. Los autores concluyeron que no había relación entre las dos cosas.”</p><p class="g-di"><b>Di:</b> “Lo que vamos a revisar es si el estudio estaba bien hecho para poder llegar a esa conclusión.”</p></details>
   </div>
 </section>
 
@@ -224,6 +229,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       <div class="panel"><h3>Desenlace = la pregunta</h3><p>¿Cómo está la coordinación visomanual de estos niños? Se define antes de medir. Va en Métodos.</p></div>
       <div class="panel"><h3>Resultado = la respuesta</h3><p>80 % con Beery inferior, sin asociación con el plomo. Se obtiene al medir. Va en Resultados.</p></div>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> La exposición es la posible causa; el desenlace es el efecto.</p><p class="g-ana"><b>Analogía:</b> En “¿fumar produce cáncer?”, fumar es la exposición y el cáncer el desenlace.</p><p class="g-di"><b>Di:</b> “Para saber cuál es cuál, armo la frase ¿X produce Y? Aquí: ¿el plomo produce alteración visomanual? El plomo es la exposición y la alteración visomanual es el desenlace.”</p><p class="g-tip"><b>Tip:</b> Haz clic en las dos frases para mostrar cuál es la correcta.</p><p class="g-di"><b>Di:</b> “Ojo: desenlace no es lo mismo que resultado. El desenlace es lo que quiero medir, la pregunta. El resultado es lo que salió, la respuesta.”</p></details>
   </div>
 </section>
 
@@ -257,6 +263,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       <p>Sexo, edad, fuentes de plomo a ≤ 4 cuadras de la casa (vías de alto tráfico 80 %, paradas de autobús 73 %, plantas químicas 57 %) y hábito mano-boca (lápiz de grafito 40 %).</p>
       <p class="chico">Errata: el resumen y el Cuadro 1 escriben “mg/dL”; la unidad correcta es µg/dL.</p>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> El plomo se midió bien. El problema del estudio no está aquí.</p><p class="g-di"><b>Di:</b> “Les sacaron sangre y midieron el plomo en un laboratorio con una técnica estándar y con control de calidad. Se consideró ‘expuesto’ a quien tenía 10 o más microgramos por decilitro, que era el límite del CDC en esa época.”</p><p class="g-tip"><b>Tip:</b> Mueve el deslizador y muestra cómo cambia de “no expuesto” a “expuesto” al pasar el 10.</p><p class="g-di"><b>Di:</b> “Hoy el CDC usa 3,5 como referencia. Con ese corte, casi todos estos niños estarían por encima.”</p></details>
   </div>
 </section>
 
@@ -287,6 +294,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
         <p class="chico">Ejemplo: 8 años (96 meses) con edad equivalente de 7 años y 3 meses (87 meses).</p>
       </div>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> El test de Beery convierte lo bien que copias dibujos en una “edad”.</p><p class="g-di"><b>Di:</b> “El niño copia figuras geométricas cada vez más difíciles. Según cuántas copia bien, se le asigna una edad equivalente. Si esa edad está más de 6 meses por debajo de su edad real, se clasifica como ‘inferior’.”</p><p class="g-ana"><b>Analogía:</b> Es como si un niño de 8 años dibujara como uno de 7: va atrasado.</p><p class="g-tip"><b>Tip:</b> Usa el ejemplo del clasificador: 8 años (96 meses) que dibuja como de 7 años y 3 meses (87 meses) da “inferior”.</p><p class="g-di"><b>Di:</b> “Un detalle: convierten un puntaje en sí o no. Eso pierde información, porque da igual estar 7 meses atrasado que 3 años.”</p></details>
   </div>
 </section>
 
@@ -309,6 +317,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       <div class="panel"><h3>Tiempo</h3><p>Plomo y Beery medidos en el mismo momento.</p></div>
       <div class="panel"><h3>Objetivo</h3><p>Buscar una asociación entre exposición y desenlace.</p></div>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Los autores dicen “ecológico”, pero es transversal analítico.</p><p class="g-di"><b>Di:</b> “Un estudio ecológico compara grupos o lugares, por ejemplo el promedio de plomo de un barrio contra otro. Aquí tienen datos de cada niño, así que no es ecológico.”</p><p class="g-di"><b>Di:</b> “Es transversal porque midieron todo en un solo momento, como una foto. Y es analítico porque buscan una relación entre dos cosas.”</p><p class="g-ana"><b>Analogía:</b> Transversal es una foto; cohorte es una película.</p><p class="g-tip"><b>Tip:</b> Pide al público que elija una opción antes de hacer clic.</p></details>
   </div>
 </section>
 
@@ -334,7 +343,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
         <tr><td class="noexp">&lt; 10 (no expuestos)</td><td class="n">19</td><td class="n">23</td><td class="n">83 %</td></tr>
       </table>
     </div>
-    <details class="guion"><summary>Qué decir</summary><p>Ellos separaron a los niños por el desenlace y compararon el plomo: la lógica invertida. Lo correcto es separar por la exposición y comparar cuánto desenlace hay en cada grupo. La RP de 0,95 con un IC que incluye el 1 dice que no hay asociación en el análisis crudo, pero además dice cuánto: eso es lo que faltó.</p></details>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Comparar cuántos niños tienen el problema en cada grupo de plomo.</p><p class="g-tip"><b>Tip:</b> Primero haz clic en “Lo que hicieron ellos” y luego en “Lo que correspondía”.</p><p class="g-di"><b>Di:</b> “Los autores lo hicieron al revés: separaron a los niños según el test y compararon cuánto plomo tenían. Pero la pregunta es si el plomo afecta el test, así que hay que separar según el plomo y ver cuántos salen mal en cada grupo.”</p><p class="g-di"><b>Di:</b> “Con plomo alto, el 78 % salió mal. Con plomo bajo, el 83 %. Si divido uno entre otro me da 0,95: eso es la razón de prevalencias. Un 1 significa que los dos grupos están igual, y 0,95 es prácticamente 1.”</p><p class="g-di"><b>Di:</b> “El intervalo de confianza va de 0,74 a 1,22. Como incluye el 1, no podemos decir que haya diferencia.”</p><p class="g-ana"><b>Analogía:</b> El intervalo es como el “más o menos” de una encuesta electoral: el valor real puede estar en cualquier parte de ese rango.</p></details>
   </div>
 </section>
 
@@ -360,6 +369,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
         <p id="sexoRes" class="chico" aria-live="polite"></p>
       </div>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Dos trampas fáciles de ver.</p><p class="g-di"><b>Di:</b> “Primero: destacan un P = 0,001, pero comparan el plomo de los que tienen plomo alto contra los que tienen plomo bajo. ¡Claro que es diferente! Los grupos se armaron justamente por el plomo.”</p><p class="g-ana"><b>Analogía:</b> Es como decir “descubrimos que los altos miden más que los bajos”.</p><p class="g-tip"><b>Tip:</b> Haz clic en “Conteos” y luego en “Proporciones”.</p><p class="g-di"><b>Di:</b> “Segundo: dicen que los varones salen peor porque son 27 contra 21 niñas. Pero había más varones, 35 contra 25. En porcentaje es al revés: 77 % de los varones y 84 % de las niñas.”</p></details>
   </div>
 </section>
 
@@ -393,6 +403,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       </div>
       <svg id="nGraf" viewBox="0 0 600 70" role="img" aria-label="Tamaño necesario comparado con la muestra y la población"></svg>
     </div>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Usaron la fórmula para describir, pero tenían que comparar.</p><p class="g-ana"><b>Analogía:</b> Es como calcular la harina para un pan y luego querer hacer dos pasteles con eso.</p><p class="g-di"><b>Di:</b> “La fórmula que usaron sirve para preguntar ‘¿cuántos niños tienen plomo alto?’, y les dio 60. Pero su pregunta era comparar dos grupos, y para eso hay otra fórmula.”</p><p class="g-tip"><b>Tip:</b> Muestra que con 80 % vs. 60 % salen 164 niños y la barra se pone roja porque pasa los 156 disponibles.</p><p class="g-di"><b>Di:</b> “Para detectar una diferencia de 80 % contra 60 % necesitaban 164 niños. Solo había 156 en los dos colegios. Con lo que tenían no alcanzaba.”</p></details>
   </div>
 </section>
 
@@ -416,7 +427,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
         </ul>
       </div>
     </div>
-    <details class="guion"><summary>Qué decir</summary><p>Mover el deslizador a 0,95 (lo que observaron): la potencia es del 7 %. Un resultado “no significativo” en un estudio así no permite concluir que no hay asociación.</p></details>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> La potencia es la probabilidad de encontrar algo si de verdad existe.</p><p class="g-ana"><b>Analogía:</b> Buscar una aguja en un pajar con una lupa chiquita: si no la encuentras, no sabes si no hay aguja o si tu lupa era muy chica.</p><p class="g-di"><b>Di:</b> “Si el plomo de verdad empeorara el test, este estudio tenía solo un 38 % de probabilidad de darse cuenta. Lo ideal es 80 %. Es peor que lanzar una moneda.”</p><p class="g-tip"><b>Tip:</b> Mueve el deslizador a 0,95 (lo que encontraron): la potencia es del 7 %.</p><p class="g-di"><b>Di:</b> “Entonces, que no encontraran nada no quiere decir que no haya nada. El estudio era demasiado pequeño para verlo.”</p></details>
   </div>
 </section>
 
@@ -442,6 +453,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       </div>
     </div>
     <p class="nota">Además, que el Beery empeore con la edad es lo contrario de lo esperado. Los propios autores sugieren que la prueba podría ser más difícil para los mayores: parte de esta relación podría ser un problema de medición.</p>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Un confusor es una tercera variable que está conectada con las otras dos y no deja ver la relación real.</p><p class="g-ana"><b>Analogía:</b> Donde se vende más helado hay más ahogados. ¿El helado ahoga? No: el calor hace que se venda más helado y que más gente vaya a nadar. El calor es el confusor.</p><p class="g-di"><b>Di:</b> “Aquí la edad es ‘el calor’. Los niños mayores tienen menos plomo, pero casi todos salen mal en el test: 97 %, contra 29 % en los chiquitos.”</p><p class="g-di"><b>Di:</b> “Entonces el grupo con poco plomo está lleno de niños grandes que salen mal, y eso hace que el plomo parezca inofensivo. Había que separar el análisis por edad, y no lo hicieron.”</p><p class="g-di"><b>Di:</b> “Además, es raro que los mayores salgan peor. Los mismos autores dicen que quizá el test era más difícil para ellos.”</p></details>
   </div>
 </section>
 
@@ -465,7 +477,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
         <p class="nota">Datos simulados: supone Pb-S normal dentro de cada edad y el mismo efecto en todas las edades. El artículo no publica la tabla plomo × edad × Beery.</p>
       </div>
     </div>
-    <details class="guion"><summary>Qué decir</summary><p>El sesgo por edad es moderado: no borra un efecto grande por sí solo. Pero sumado a la baja potencia, el estudio no podía distinguir “sin efecto” de “efecto moderado escondido”. Faltó estratificar por edad o ajustar con un modelo (Mantel-Haenszel, Poisson robusta, logística).</p></details>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Como no tenemos los datos de cada niño, inventamos un mundo de mentira con los números publicados y vemos qué pasa.</p><p class="g-ana"><b>Analogía:</b> Es como un simulador de vuelo: no es un avión real, pero sirve para ver qué pasaría en distintas situaciones.</p><p class="g-tip"><b>Tip:</b> Empieza con el deslizador en 1 y luego súbelo a 2,5.</p><p class="g-di"><b>Di:</b> “En este simulador yo decido cuánto daño hace el plomo. Si lo dejo en 1, el plomo no hace nada. Aun así, el análisis sin separar por edad da 0,92 en vez de 1: ese error lo causa solo la edad. Y el artículo encontró 0,95, justo en esa zona.”</p><p class="g-di"><b>Di:</b> “Si subo el daño del plomo, el análisis separado por edad lo detecta, pero el análisis sin separar lo ve mucho más chiquito.”</p><p class="g-di"><b>Di:</b> “Importante: son datos simulados, para ilustrar. No es un reanálisis de los datos reales.”</p><p class="g-preg"><b>Si te preguntan:</b> “¿Entonces el plomo sí hace daño?” → “No lo sabemos. Este estudio no puede responderlo: era pequeño y no controló la edad.”</p></details>
   </div>
 </section>
 
@@ -485,6 +497,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       </div>
     </div>
     <p class="bajada">El problema no era el diseño: era el análisis, el tamaño de muestra y el control de la confusión.</p>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> El caso-control sirve cuando el problema es raro. Aquí no lo es.</p><p class="g-di"><b>Di:</b> “Los autores recomiendan un estudio de casos y controles. Ese diseño se usa cuando el problema es raro, por ejemplo si solo el 1 % lo tiene. Aquí lo tiene el 80 %: casos sobran.”</p><p class="g-di"><b>Di:</b> “El problema no era el diseño: era el análisis, el tamaño de la muestra y no controlar la edad.”</p></details>
   </div>
 </section>
 
@@ -502,6 +515,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
       <div class="panel"><h3>Tamaño muestral</h3><p>Calculado para estimar (60), no para comparar grupos (164).</p></div>
     </div>
     <p class="chico">Todos los números se calcularon en R; el código está en el proyecto <span class="num">PlomoBot</span>.</p>
+    <details class="guion"><summary>Qué decir</summary><p class="g-idea"><b>La idea:</b> Cerrar con el mensaje en una frase.</p><p class="g-di"><b>Di:</b> “El estudio no encontró relación entre el plomo y la coordinación, pero no porque no exista. Era muy pequeño, usó un análisis que no medía la asociación y no controló la edad, que podía esconder el efecto.”</p><p class="g-preg"><b>Si te preguntan:</b> “¿Qué deberían haber hecho?” → “Calcular la razón de prevalencias, usar la fórmula para comparar grupos y separar el análisis por edad.”</p><p class="g-preg"><b>Si te preguntan:</b> “¿Cómo hicieron los cálculos?” → “Con R, usando los números de los cuadros del artículo. El código está en el reporte.”</p></details>
   </div>
 </section>
 
@@ -511,6 +525,7 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
   <button class="nav-btn" id="prev" aria-label="Diapositiva anterior">←</button>
   <span class="num chico" id="contador">1 / 14</span>
   <span class="titulo-sec" id="tituloSec"></span>
+  <button class="btn" id="btnGuion" aria-pressed="false" title="Mostrar u ocultar el guion (tecla G)">Guion</button>
   <div class="puntos" id="puntos"></div>
   <button class="nav-btn" id="next" aria-label="Diapositiva siguiente">→</button>
 </nav>
@@ -550,12 +565,18 @@ details.guion p { margin-top: 6px; max-width: 75ch; }
     slides[actual].scrollTop=0;
     try{history.replaceState(null,'','#s'+(actual+1))}catch(e){}
   }
+  // Guion: abre o cierra todos los "Qué decir" a la vez y lo recuerda
+  const guiones=[...document.querySelectorAll('details.guion')];
+  function verGuion(on){guiones.forEach(d=>d.open=on);$('btnGuion').setAttribute('aria-pressed',String(on));try{localStorage.setItem('plomobot-guion',on?'1':'0')}catch(e){}}
+  $('btnGuion').addEventListener('click',()=>verGuion($('btnGuion').getAttribute('aria-pressed')!=='true'));
+  try{if(localStorage.getItem('plomobot-guion')==='1')verGuion(true)}catch(e){}
   $('prev').addEventListener('click',()=>ir(actual-1));
   $('next').addEventListener('click',()=>ir(actual+1));
   document.addEventListener('keydown',e=>{
     const t=e.target;if(t&&(t.tagName==='INPUT'))return;
     if(e.key==='ArrowRight'||e.key==='PageDown'){ir(actual+1);e.preventDefault()}
     else if(e.key==='ArrowLeft'||e.key==='PageUp'){ir(actual-1);e.preventDefault()}
+    else if(e.key==='g'||e.key==='G'){$('btnGuion').click()}
     else if(e.key==='Home'){ir(0)}else if(e.key==='End'){ir(slides.length-1)}
   });
   const m=/^#s(\d+)$/.exec(location.hash||'');
