@@ -7,6 +7,8 @@ Proyecto de R para la lectura crítica del artículo:
 > Squillante G, Rojas M, Medina E, et al. Plomo en sangre y coordinación
 > visomanual en niños. *Gac Méd Caracas*. 2005;113(1):50-57.
 
+Artículo completo en PDF: [`articulo.pdf`](articulo.pdf) · en línea: https://saffranina.github.io/lukeybot/articulo.pdf
+
 ## Qué contiene
 
 | Archivo | Qué hace |
