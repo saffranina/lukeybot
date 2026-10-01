@@ -90,8 +90,12 @@ exigía **comparar dos proporciones**.
 - Con su fórmula se llega a `r n_autores` niños, exactamente su muestra, así
   que casi seguro fue la que usaron. Esa fórmula responde "¿qué proporción de
   niños tiene X?", no "¿difieren dos grupos?".
-- Para detectar 80 % de Beery inferior en expuestos vs. 60 % en no expuestos
-  (RP ≈ 1,33; α = 0,05; potencia 80 %) hacían falta `r n_grupo` por grupo
+- Para el cálculo correcto hay que fijar de antemano la diferencia que se quiere
+  detectar. El artículo no la da, así que usamos un **escenario de ejemplo**:
+  80 % de Beery inferior en expuestos vs. 60 % en no expuestos (RP ≈ 1,33;
+  α = 0,05; potencia 80 %). En un estudio real estos valores salen de la
+  literatura o de un piloto. Es una diferencia grande, fácil de detectar, y aun
+  así hacían falta `r n_grupo` por grupo
   (`r 2 * n_grupo` en total), más que los 156 niños disponibles.
 - Con grupos desiguales como los del estudio (23 no expuestos por cada
   37 expuestos) se necesitan todavía más: `r n_exp_k` expuestos y

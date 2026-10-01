@@ -30,6 +30,7 @@ body {
   padding: calc(40px + env(safe-area-inset-top, 0px)) 20px calc(40px + env(safe-area-inset-bottom, 0px));
 }
 main { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.logo { width: 180px; height: auto; max-width: 100%; }
 .pb {
   width: 104px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 6px; padding: 8px 10px;
   display: flex; flex-direction: column; justify-content: space-between; background: var(--surface);
@@ -65,9 +66,7 @@ a.boton.rep { border-top: 6px solid var(--noexp); }
 </head>
 <body>
 <main>
-  <div class="pb" aria-label="Plomo, número atómico 82, masa 207,2">
-    <span class="z">82</span><span class="s">Pb</span><span class="m">207,2</span>
-  </div>
+  <img class="logo" src="img/logo.png" alt="Logo de Epidemiología: un conejito con corona, lupa y gráfico" width="180" height="180">
   <p class="ceja">PlomoBot · Lectura crítica · Epidemiología</p>
   <h1>Plomo en sangre y coordinación visomanual en niños</h1>
   <p class="cita">Squillante G, Rojas M, Medina E, Seijas D, Terán de Rojas O. <i>Gac Méd Caracas</i>. 2005;113(1):50-57.</p>

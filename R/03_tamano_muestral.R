@@ -20,6 +20,8 @@ epi.sssimpleestb(N = N, Py = p, epsilon = d / p, error = "relative",
 # Lo que correspondía: fórmula para COMPARAR dos proporciones
 # p1 = Beery inferior esperado en expuestos, p0 = en no expuestos.
 # Diferencia mínima que interesa detectar: 80 % vs. 60 % (RP = 1,33).
+# ESCENARIO DE EJEMPLO: no viene del artículo. En un estudio real, p0 sale de
+# la literatura o de un piloto, y p1 de la diferencia clínicamente relevante.
 p1 <- 0.80; p0 <- 0.60
 p_barra <- (p1 + p0) / 2
 n_grupo <- (z_alfa * sqrt(2 * p_barra * (1 - p_barra)) +
